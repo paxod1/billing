@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #036510;
+  --color-accent-green: #E8F5E9;
+}
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+  --brand-primary: #FFCA00;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
+}
+
+@layer base {
+  button {
+    cursor: pointer;
+  }
+
+  /* Global Input Standardization */
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    @apply transition-all duration-200 outline-none;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):hover,
+  textarea:hover,
+  select:hover {
+    border-color: #FFCA00 !important;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):focus,
+  textarea:focus,
+  select:focus {
+    border-color: #FFCA00 !important;
+    box-shadow: 0 0 0 2px rgba(255, 202, 0, 0.2) !important;
+    outline: none !important;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #d0d0d0;
+    border-radius: 10px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #d0d0d0;
+  }
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #d0d0d0 transparent;
+  }
+
+  .sidebar-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .sidebar-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar-scrollbar::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 10px;
+  }
+
+  .sidebar-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: #d0d0d0;
+  }
+
+  .sidebar-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .sidebar-scrollbar:hover {
+    scrollbar-color: #d0d0d0 transparent;
+  }
+
+  .handwriting {
+    font-family: 'Cursive', sans-serif;
+    /* Fallback for now */
+  }
+
+  /* Standardizing Date Picker Icon Color */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: invert(0.5);
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 0.8;
+  }
+}

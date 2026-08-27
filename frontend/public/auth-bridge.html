@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authenticating...</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #f9fafb;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .loader {
+            text-align: center;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #036510;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loader">
+        <div class="spinner"></div>
+        <p style="color: #6b7280;">Authenticating securely...</p>
+    </div>
+
+    <script>
+        console.log("🔍 [Auth Bridge] Checking for token in hash...");
+        
+        // Get hash from URL
+        const hash = window.location.hash;
+        console.log("📍 [Auth Bridge] Hash:", hash);
+        
+        if (hash && hash.includes('auth=')) {
+            try {
+                // Extract encrypted data
+                const authParam = hash.split('auth=')[1];
+                const encryptedData = authParam.split('&')[0];
+                
+                console.log("📦 [Auth Bridge] Found encrypted data");
+                
+                // Decrypt
+                const decryptedData = atob(encryptedData);
+                const authPayload = JSON.parse(decryptedData);
+                
+                console.log("🔓 [Auth Bridge] Decrypted:", {
+                    role: authPayload.role,
+                    timestamp: authPayload.timestamp
+                });
+                
+                // Check expiry
+                const now = Date.now();
+                if (now > authPayload.expiresAt) {
+                    console.error('❌ [Auth Bridge] Token expired');
+                    window.location.href = '/';
+                    return;
+                }
+                
+                // Validate timestamp
+                const tokenTime = new Date(authPayload.timestamp);
+                const diffSeconds = (new Date() - tokenTime) / 1000;
+                
+                console.log(`⏰ [Auth Bridge] Token age: ${diffSeconds.toFixed(2)}s`);
+                
+                if (diffSeconds > 30) {
+                    console.error('❌ [Auth Bridge] Token too old');
+                    window.location.href = '/';
+                    return;
+                }
+                
+                // Create cookie
+                const authData = {
+                    access_token: authPayload.token,
+                    role: authPayload.role,
+                    timestamp: authPayload.timestamp,
+                    source: 'boss_magics'
+                };
+                
+                // Set cookie manually
+                const cookieValue = JSON.stringify(authData);
+                const expiryDate = new Date();
+                expiryDate.setDate(expiryDate.getDate() + 1); // 1 day
+                
+                document.cookie = `AuthData=${encodeURIComponent(cookieValue)}; expires=${expiryDate.toUTCString()}; path=/; SameSite=Strict`;
+                
+                console.log('✅ [Auth Bridge] Cookie saved successfully');
+                
+                // Redirect to main app (without hash)
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 500);
+                
+            } catch (error) {
+                console.error('❌ [Auth Bridge] Error:', error);
+                window.location.href = '/';
+            }
+        } else {
+            console.log('ℹ️ [Auth Bridge] No auth data, redirecting...');
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
