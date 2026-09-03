@@ -89,7 +89,7 @@ function hydrateItem(item) {
 }
 
 const inventoryController = {
-    // --- CUSTOMIZED PRODUCTS ---
+    // --- Stocks ---
     getCustomizedProducts: (req, res) => {
         try {
             const body = req.body || {};
@@ -128,15 +128,19 @@ const inventoryController = {
         try {
             const payload = Array.isArray(req.body) ? req.body : [req.body];
             const stmt = db.prepare(`
-                INSERT INTO items (name, sku, description, unit, rate, unit_price, cost_price, Production_cost, item_type, category, quantity, tax_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'CUSTOMISED PRODUCTS', 'SALES', ?, ?)
+                INSERT INTO items (
+                    name, sku, description, unit, rate, unit_price, cost_price, Production_cost, 
+                    item_type, category, quantity, tax_id, 
+                    cardamom_size, supplier_id, gross_weight, packet_weight, sample_weight, net_weight
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'CUSTOMISED PRODUCTS', 'SALES', ?, ?, ?, ?, ?, ?, ?, ?)
             `);
 
             const insertedIds = [];
             payload.forEach(item => {
                 const taxId = resolveTaxId(item);
                 const info = stmt.run(
-                    item.name || 'Customized Product',
+                    item.name || 'stocks',
                     item.sku || item.item_code || '',
                     item.description || '',
                     item.unit || 'Pcs',
@@ -145,7 +149,13 @@ const inventoryController = {
                     parseFloat(item.cost_price || item.Production_cost || 0),
                     parseFloat(item.Production_cost || item.cost_price || 0),
                     parseFloat(item.quantity !== undefined ? item.quantity : (item.current_quantity !== undefined ? item.current_quantity : (item.opening_quantity || 0))),
-                    taxId
+                    taxId,
+                    item.cardamom_size || null,
+                    item.supplier_id ? parseInt(item.supplier_id, 10) : null,
+                    parseFloat(item.gross_weight || 0),
+                    parseFloat(item.packet_weight || item.tare_weight || 0),
+                    parseFloat(item.sample_weight || item.sample_deduction || 0),
+                    parseFloat(item.net_weight || item.quantity || item.current_quantity || 0)
                 );
                 insertedIds.push(info.lastInsertRowid);
             });
@@ -153,7 +163,7 @@ const inventoryController = {
             const created = db.prepare(`SELECT * FROM items WHERE id IN (${insertedIds.join(',')})`).all();
             return res.status(201).json({
                 success: true,
-                message: "Customized Product created successfully",
+                message: "stocks created successfully",
                 data: Array.isArray(req.body) ? created.map(hydrateItem) : hydrateItem(created[0])
             });
         } catch (error) {
@@ -184,7 +194,8 @@ const inventoryController = {
 
             db.prepare(`
                 UPDATE items
-                SET name = ?, sku = ?, description = ?, unit = ?, rate = ?, unit_price = ?, cost_price = ?, Production_cost = ?, quantity = ?, tax_id = ?
+                SET name = ?, sku = ?, description = ?, unit = ?, rate = ?, unit_price = ?, cost_price = ?, Production_cost = ?, quantity = ?, tax_id = ?,
+                    cardamom_size = ?, supplier_id = ?, gross_weight = ?, packet_weight = ?, sample_weight = ?, net_weight = ?
                 WHERE id = ?
             `).run(
                 data.name || existing.name,
@@ -197,11 +208,17 @@ const inventoryController = {
                 data.Production_cost !== undefined ? parseFloat(data.Production_cost) : existing.Production_cost,
                 data.quantity !== undefined ? parseFloat(data.quantity) : (data.current_quantity !== undefined ? parseFloat(data.current_quantity) : existing.quantity),
                 taxId,
+                data.cardamom_size !== undefined ? data.cardamom_size : existing.cardamom_size,
+                data.supplier_id !== undefined ? (data.supplier_id ? parseInt(data.supplier_id, 10) : null) : existing.supplier_id,
+                data.gross_weight !== undefined ? parseFloat(data.gross_weight || 0) : existing.gross_weight,
+                (data.packet_weight !== undefined || data.tare_weight !== undefined) ? parseFloat(data.packet_weight || data.tare_weight || 0) : existing.packet_weight,
+                (data.sample_weight !== undefined || data.sample_deduction !== undefined) ? parseFloat(data.sample_weight || data.sample_deduction || 0) : existing.sample_weight,
+                data.net_weight !== undefined ? parseFloat(data.net_weight || 0) : existing.net_weight,
                 id
             );
 
             const updated = db.prepare("SELECT * FROM items WHERE id = ?").get(id);
-            return res.json({ success: true, message: "Customized Product updated successfully", data: hydrateItem(updated) });
+            return res.json({ success: true, message: "stocks updated successfully", data: hydrateItem(updated) });
         } catch (error) {
             console.error("Error in updateCustomizedProduct:", error);
             return res.status(500).json({ success: false, error: error.message });
@@ -213,7 +230,7 @@ const inventoryController = {
             const id = req.params.id;
             db.prepare("DELETE FROM product_compositions WHERE product_id = ?").run(id);
             db.prepare("DELETE FROM items WHERE id = ?").run(id);
-            return res.json({ success: true, message: "Customized Product deleted successfully" });
+            return res.json({ success: true, message: "stocks deleted successfully" });
         } catch (error) {
             return res.status(500).json({ success: false, error: error.message });
         }

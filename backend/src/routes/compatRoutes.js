@@ -167,7 +167,7 @@ schemaPrefixes.forEach(schemaPrefix => {
     router.post(`${schemaPrefix}/public.purchase_payment/query`, purchaseController.getPayments);
     router.delete(`${schemaPrefix}/public.purchase_payment/:id`, purchaseController.deletePayment);
 
-    // Items (Customized Products)
+    // Items (Stocks)
     router.post(`${schemaPrefix}/public.item/query`, inventoryController.getCustomizedProducts);
     router.post(`${schemaPrefix}/public.item/save-single-or-multiple`, inventoryController.saveCustomizedProduct);
     router.put(`${schemaPrefix}/public.item/update-by-id/:id`, inventoryController.updateCustomizedProduct);

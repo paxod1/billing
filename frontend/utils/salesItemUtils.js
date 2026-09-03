@@ -64,9 +64,9 @@ export const parseItemsFromDb = (dbItems, customizedProductsList = []) => {
         if (sourceType === "time") itemType = "Time";
         else if (sourceType === "mileage") itemType = "Mileage";
         else if (sourceType === "service") itemType = "Service";
-        else if (sourceType === "customized" || sourceType === "customized product") itemType = "Customized Product";
-        else if (rawSourceId && typeof rawSourceId === "object" && rawSourceId.item_type === "CUSTOMISED PRODUCTS") itemType = "Customized Product";
-        else if (customizedProductsList && customizedProductsList.some(cp => cp.id == mappedItemId)) itemType = "Customized Product";
+        else if (sourceType === "customized" || sourceType === "stocks") itemType = "stocks";
+        else if (rawSourceId && typeof rawSourceId === "object" && rawSourceId.item_type === "CUSTOMISED PRODUCTS") itemType = "stocks";
+        else if (customizedProductsList && customizedProductsList.some(cp => cp.id == mappedItemId)) itemType = "stocks";
 
         const metadata = { ...(item.metadata || {}) };
 
@@ -154,7 +154,7 @@ export const mapItemsForSave = (items) => {
         const totalAmount = parseFloat(firstItem.rate) || 0;
         const originalTotal = parseFloat(firstItem.metadata?.parent_total_amount) || totalAmount || 1;
         const originalTax = parseFloat(firstItem.metadata?.parent_tax) || 0;
-        
+
         const taxAmount = originalTotal > 0 ? (totalAmount * originalTax) / originalTotal : 0;
         const subtotal = totalAmount - taxAmount;
         const rate = subtotal;
@@ -197,7 +197,7 @@ export const mapItemsForSave = (items) => {
         const taxId = item.tax_id ? Number(item.tax_id) : null;
         let sourceType = item.source_type || "item";
 
-        if (item.type === "Product" || item.type === "Customized Product") {
+        if (item.type === "Product" || item.type === "stocks") {
             sourceType = "item";
         }
 
@@ -206,7 +206,7 @@ export const mapItemsForSave = (items) => {
             quantity: qty,
             rate: rate,
             tax_percent: taxPercent,
-            amount: (item.type === "Product" || item.type === "Customized Product") ? Number(subtotal_calc.toFixed(2)) : Number(totalWithTax.toFixed(2))
+            amount: (item.type === "Product" || item.type === "stocks") ? Number(subtotal_calc.toFixed(2)) : Number(totalWithTax.toFixed(2))
         };
 
         if (taxId) {
@@ -249,7 +249,7 @@ export const mapItemsForSave = (items) => {
                 hours: Number(qty) || 0
             };
         } else {
-            // product / customized product: both item_id and source_id are the product's id
+            // product / stocks: both item_id and source_id are the product's id
             baseItem.item_id = Number(item.item_id);
             baseItem.source_id = Number(item.item_id);
             baseItem.description = item.description || "N/A";

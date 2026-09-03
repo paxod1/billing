@@ -46,7 +46,7 @@ const getInitialFormData = () => ({
     }
 });
 
-const PurchasePaymentForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = false }) => {
+const PurchasePaymentForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = false, initialInvoiceId = null }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const dispatch = useDispatch();
@@ -221,6 +221,7 @@ const PurchasePaymentForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                     ...getInitialFormData(),
                     paymentNo: generateUniqueId("PAY"),
                     paymentDate: new Date().toISOString().split('T')[0],
+                    returnAgainst: initialInvoiceId || ""
                 };
             }
 
@@ -228,7 +229,7 @@ const PurchasePaymentForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
             if (viewOnly) setStep(2);
             setInitialSnapshot(JSON.stringify(dataToSet));
         }
-    }, [isOpen, editData]);
+    }, [isOpen, editData, initialInvoiceId]);
     
     // Secondary Effect: Sync invoice-based financial cards once allInvoices list is loaded
     // Only used for create-mode (no editData) when user picks an invoice from dropdown

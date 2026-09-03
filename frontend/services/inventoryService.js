@@ -65,7 +65,7 @@ export const inventoryService = {
         return inventoryService.deleteCustomizedProduct(id);
     },
 
-    // --- CUSTOMIZED PRODUCTS ---
+    // --- Stocks ---
     getCustomizedProducts: async (params = {}) => {
         try {
             const response = await tokenRequest.get(API_CUSTOMIZED, { params });

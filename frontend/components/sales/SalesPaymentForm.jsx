@@ -97,7 +97,7 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
     const [mileageRoutesMap, setMileageRoutesMap] = useState({});
     const [mileageSelectedRouteMap, setMileageSelectedRouteMap] = useState({});
     const [mileageCalculatingMap, setMileageCalculatingMap] = useState({});
-    
+
     // Cache for mileage routes to prevent redundant API calls
     const mileageRouteCache = useRef({});
 
@@ -176,7 +176,7 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
     const handleAddEstimationItem = (type) => {
         const newItem = {
             item_id: `est_${Date.now()}`,
-            type: "Customized Product",
+            type: "stocks",
             source_type: "estimation",
             tax_id: "",
             tax_percent: 0,
@@ -207,7 +207,7 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
         const today = new Date().toISOString().split('T')[0];
         const newItem = {
             item_id: `time_${Date.now()}`,
-            type: "Customized Product",
+            type: "stocks",
             source_type: "time",
             tax_id: "",
             tax_percent: 0,
@@ -233,7 +233,7 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
         const today = new Date().toISOString().split('T')[0];
         const newItem = {
             item_id: `mileage_${Date.now()}`,
-            type: "Customized Product",
+            type: "stocks",
             source_type: "mileage",
             tax_id: "",
             tax_percent: 0,
@@ -256,10 +256,10 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
 
     const handleAddNewItemOfType = (type) => {
         setIsAddItemMenuOpen(false);
-        
+
         if (type === "Product") {
             handleAddItem();
-        } else if (type === "Customized Product") {
+        } else if (type === "stocks") {
             handleAddItem();
         } else if (type === "Time") {
             handleAddTimeItem();
@@ -326,7 +326,7 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
         if (mileageRouteCache.current[cacheKey]) {
             const cachedRoutes = mileageRouteCache.current[cacheKey];
             setMileageRoutesMap(prev => ({ ...prev, [itemId]: cachedRoutes }));
-            
+
             if (cachedRoutes.length > 0) {
                 let matchIndex = 0;
                 const item = formData.items.find(it => it.item_id == itemId);
@@ -343,7 +343,7 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                 }
 
                 setMileageSelectedRouteMap(prev => ({ ...prev, [itemId]: matchIndex }));
-                
+
                 if (!isInitialHydrationRef.current.has(itemId)) {
                     const dist = cachedRoutes[matchIndex].distance.toFixed(2);
                     setFormData(prev => {
@@ -359,7 +359,7 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                         return { ...prev, items: newItems };
                     });
                 }
-                
+
                 isInitialHydrationRef.current.delete(itemId);
             }
             return;
@@ -392,7 +392,7 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                     let totalDist = route.distance / 1000;
                     let duration = route.duration / 60;
                     let routeGeometry = route.geometry.coordinates;
-                    
+
                     if (tripType === 'round_trip') {
                         if (returnRoute) {
                             totalDist += returnRoute.distance / 1000;
@@ -403,19 +403,19 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                             duration *= 2;
                         }
                     }
-                    
-                    return { 
-                        distance: totalDist, 
-                        duration, 
-                        name: route.legs[0].summary || `Route ${idx + 1}`, 
-                        geometry: routeGeometry 
+
+                    return {
+                        distance: totalDist,
+                        duration,
+                        name: route.legs[0].summary || `Route ${idx + 1}`,
+                        geometry: routeGeometry
                     };
                 });
 
                 mileageRouteCache.current[cacheKey] = fetchedRoutes;
 
                 setMileageRoutesMap(prev => ({ ...prev, [itemId]: fetchedRoutes }));
-                
+
                 if (fetchedRoutes.length > 0) {
                     let matchIndex = 0;
                     const item = formData.items.find(it => it.item_id == itemId);
@@ -432,7 +432,7 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                     }
 
                     setMileageSelectedRouteMap(prev => ({ ...prev, [itemId]: matchIndex }));
-                    
+
                     if (!isInitialHydrationRef.current.has(itemId)) {
                         const dist = fetchedRoutes[matchIndex].distance.toFixed(2);
                         setFormData(prev => {
@@ -448,7 +448,7 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                             return { ...prev, items: newItems };
                         });
                     }
-                    
+
                     isInitialHydrationRef.current.delete(itemId);
                 }
             }
@@ -597,9 +597,9 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
         let itemType = "Product";
         const backendItemType = item.items?.item_type || "";
         if (sourceType === "time" || sourceType === "mileage" || sourceType === "estimation") {
-            itemType = "Customized Product";
+            itemType = "stocks";
         } else if (backendItemType === "CUSTOMISED PRODUCTS" || customizedProductsList.some(cp => cp.id == mappedItemId)) {
-            itemType = "Customized Product";
+            itemType = "stocks";
         }
 
         let metadata = item.metadata;
@@ -658,10 +658,10 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                 metadata.description = metadata.name;
 
                 const currentType = (metadata.type || metadata.materialType || "product").toLowerCase();
-                const isCustomObj = currentType === "customized product";
+                const isCustomObj = currentType === "stocks";
 
-                metadata.type = isCustomObj ? "customized product" : "product";
-                itemType = isCustomObj ? "Customized Product" : "Product";
+                metadata.type = isCustomObj ? "stocks" : "product";
+                itemType = isCustomObj ? "stocks" : "Product";
 
                 const targetList = isCustomObj ? customizedProductsList : productsList;
                 const match = targetList.find(p => p.name?.toLowerCase() === metadata.name?.toLowerCase() || p.id == mappedItemId);
@@ -688,7 +688,7 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                     metadata.qty = 1;
                 }
             }
-            
+
             if (!metadata.description) {
                 metadata.description = metadata.line_name || metadata.line_description || item.description || "";
             }
@@ -720,7 +720,7 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
         return (formItems || []).map(item => {
             let resolvedName = "N/A";
             let typeLabel = "Product";
-            
+
             const sourceType = (item.source_type || "item").toLowerCase();
 
             if (sourceType === "time") {
@@ -740,10 +740,10 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                 resolvedName = item.description || metadata.service_name || item.name || "Service";
                 typeLabel = "Service";
             } else {
-                const isCustom = item.type === "Customized Product" || sourceType === "customized_product";
+                const isCustom = item.type === "stocks" || sourceType === "customized_product";
                 const list = isCustom ? customizedProductsList : productsList;
                 resolvedName = list.find(i => String(i.id) === String(item.item_id))?.name || item.description || item.name || "N/A";
-                typeLabel = item.type || (isCustom ? "Customized Product" : "Product");
+                typeLabel = item.type || (isCustom ? "stocks" : "Product");
             }
 
             const metadata = item.metadata || {};
@@ -794,7 +794,7 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                 payingAmount: "",
                 items: mappedItems
             }));
-            
+
             dispatch(showToast({ message: `Invoice data pre-filled: ${selectedInvoice.invoice_number}`, type: "success" }));
         }
     };
@@ -901,15 +901,15 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                     ).map((item, idx) => {
                         let matchingInvoiceItem = invoiceSalesItems[idx];
                         if (!matchingInvoiceItem && invoiceSalesItems.length > 0) {
-                            matchingInvoiceItem = invoiceSalesItems.find(invItem => 
+                            matchingInvoiceItem = invoiceSalesItems.find(invItem =>
                                 String(invItem.source_id || invItem.item_id || "") === String(item.source_id || item.item_id || "")
                             );
                         }
 
                         return {
                             ...item,
-                            source_type: (item.source_type && item.source_type !== "item") 
-                                ? item.source_type 
+                            source_type: (item.source_type && item.source_type !== "item")
+                                ? item.source_type
                                 : (matchingInvoiceItem?.source_type || item.source_type || "item"),
                             metadata: item.metadata || matchingInvoiceItem?.metadata || null,
                             description: item.description || matchingInvoiceItem?.description || null,
@@ -1001,7 +1001,7 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                 setCustomers(data);
 
                 const newCustomerId = response?.data?.[0]?.id || response?.id;
-                
+
                 if (newCustomerId) {
                     setFormData(prev => ({
                         ...prev,
@@ -1159,11 +1159,11 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
         const commonLabelClass = "text-[11px] font-bold text-gray-500 uppercase tracking-wider block mb-1";
         const commonInputClass = `w-full px-3 py-1.5 bg-[#F9FAFB] border border-gray-200 rounded-xl text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#FFCA00] focus:bg-white transition-all h-[38px] ${isReadOnly ? 'bg-gray-50/50 cursor-not-allowed' : ''}`;
 
-        // Product / Customized Product
-        if (type === "Product" || type === "product" || type === "Customized Product" || type === "customized") {
+        // Product / stocks
+        if (type === "Product" || type === "product" || type === "stocks" || type === "customized") {
             const productList = (type === "Product" || type === "product") ? productsList : customizedProductsList;
             const selectedProduct = productList.find(i => i.id == item.item_id);
-            
+
             return (
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
                     <div className="md:col-span-5">
@@ -1402,7 +1402,7 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 w-full max-w-4xl">
                         {[
                             { id: "Product", label: "Product", icon: FiBox, color: "hover:border-[#FFCA00] hover:text-[#FFCA00] hover:bg-amber-50/10" },
-                            { id: "Customized Product", label: "Customized", icon: FiSettings, color: "hover:border-purple-500 hover:text-purple-600 hover:bg-purple-50/10" },
+                            { id: "stocks", label: "Customized", icon: FiSettings, color: "hover:border-purple-500 hover:text-purple-600 hover:bg-purple-50/10" },
                             { id: "Time", label: "Time Entry", icon: FiClock, color: "hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50/10" },
                             { id: "Mileage", label: "Mileage Entry", icon: FiNavigation, color: "hover:border-rose-500 hover:text-rose-600 hover:bg-rose-50/10" },
                             { id: "Estimation", label: "Estimate", icon: FiFileText, color: "hover:border-teal-500 hover:text-teal-600 hover:bg-teal-50/10" }
@@ -1641,13 +1641,13 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                                 {/* Details Section */}
                                 <div className="mb-8">
                                     <h3 className="text-sm font-bold text-gray-900 mb-4">Details</h3>
-                                    
+
                                     {!editData && (
                                         <div className="mb-6">
                                             <label className="text-[13px] font-bold text-gray-900 mb-2 block uppercase tracking-widest">Select Sales Invoice to start</label>
                                             <CustomSelect
-                                                options={invoices.map(inv => ({ 
-                                                    value: inv.id, 
+                                                options={invoices.map(inv => ({
+                                                    value: inv.id,
                                                     label: `${inv.invoice_number} - ${inv.invoice_name || inv.customer_id?.name || 'Unknown'} (₹${inv.total_amount?.toLocaleString()})`
                                                 }))}
                                                 value={formData.invoice_id}
@@ -1715,11 +1715,10 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                                                                 }}
                                                                 options={customers.map(c => ({ value: c.id, label: c.name }))}
                                                                 placeholder="Enter Customer Name"
-                                                                className={`border border-gray-200 h-[48px] ${
-                                                                    formData.invoice_id
+                                                                className={`border border-gray-200 h-[48px] ${formData.invoice_id
                                                                         ? "rounded-lg"
                                                                         : "rounded-t-lg sm:rounded-l-lg sm:rounded-tr-none sm:rounded-r-none sm:border-r-0"
-                                                                }`}
+                                                                    }`}
                                                                 isDisabled={!!formData.invoice_id}
                                                             />
                                                         </div>
@@ -1852,7 +1851,7 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                                                             <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 py-2 ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200">
                                                                 {[
                                                                     { id: "Product", label: "Product", icon: FiBox },
-                                                                    { id: "Customized Product", label: "Customized Product", icon: FiSettings },
+                                                                    { id: "stocks", label: "stocks", icon: FiSettings },
                                                                     { id: "Time", label: "Time Entry", icon: FiClock },
                                                                     { id: "Mileage", label: "Mileage Entry", icon: FiNavigation },
                                                                     { id: "Estimation", label: "Estimation", icon: FiFileText }
@@ -2022,9 +2021,9 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                                                     return { name: c?.name || "N/A", address: c?.address, email: c?.email, phone: c?.phone };
                                                 })(),
                                                 document: {
-                                                    number:     formData.paymentNumber,
-                                                    date:       formData.paymentDate,
-                                                    reference:  formData.paymentName,
+                                                    number: formData.paymentNumber,
+                                                    date: formData.paymentDate,
+                                                    reference: formData.paymentName,
                                                     status: formData.invoice_id ? ((formData.invoiceRemainingDue - (parseFloat(formData.payingAmount) || 0)) <= 0.01 ? "FULLY_PAID" : "PARTIALLY_PAID") : "PAID",
                                                     paymentBreakdown: formData.invoice_id ? {
                                                         originalTotal: formData.originalInvoiceAmount || totals.total,
@@ -2235,9 +2234,9 @@ const SalesPaymentForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                                                     return { name: c?.name || "N/A", address: c?.address, email: c?.email, phone: c?.phone };
                                                 })(),
                                                 document: {
-                                                    number:     formData.paymentNumber,
-                                                    date:       formData.paymentDate,
-                                                    reference:  formData.paymentName,
+                                                    number: formData.paymentNumber,
+                                                    date: formData.paymentDate,
+                                                    reference: formData.paymentName,
                                                     status: formData.invoice_id ? ((formData.invoiceRemainingDue - (parseFloat(formData.amountPaid) || 0)) <= 0.01 ? "FULLY_PAID" : "PARTIALLY_PAID") : "PAID",
                                                     paymentBreakdown: formData.invoice_id ? {
                                                         originalTotal: formData.originalInvoiceAmount || totals.total,

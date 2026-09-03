@@ -59,7 +59,7 @@ function InventoryContent() {
     const [totalProducts, setTotalProducts] = useState(0);
     const [specialItems, setSpecialItems] = useState([]);
     const [totalSpecialItems, setTotalSpecialItems] = useState(0);
-    
+
     // Auxiliary Data
     const [suppliers, setSuppliers] = useState([]);
     const [taxes, setTaxes] = useState([]);
@@ -116,7 +116,7 @@ function InventoryContent() {
                         const itemStr = localStorage.getItem(key);
                         if (!itemStr) continue;
                         const { createdMaterial, createdProduct, restockData } = JSON.parse(itemStr);
-                        
+
                         let itemId;
                         if (key.startsWith("pending_restock_material_")) {
                             itemId = key.replace("pending_restock_material_", "");
@@ -147,7 +147,7 @@ function InventoryContent() {
                                 console.error("Silent retry error:", err);
                                 try {
                                     localStorage.removeItem(key);
-                                } catch (e) {}
+                                } catch (e) { }
                                 setRestockingItemIds(prev => prev.filter(id => id !== String(itemId)));
                                 fetchData(true);
                             }
@@ -218,7 +218,7 @@ function InventoryContent() {
                 const response = await inventoryService.getProducts(commonParams);
                 setProducts(response.data);
                 setTotalProducts(response.totalCount);
-            } else if (activeTab === "Customized Products") {
+            } else if (activeTab === "Stocks") {
                 const response = await inventoryService.getCustomizedProducts(commonParams);
                 setSpecialItems(response.data);
                 setTotalSpecialItems(response.totalCount);
@@ -377,7 +377,7 @@ function InventoryContent() {
                             await inventoryService.restockRawMaterial(createdMaterial, restockData);
                             try {
                                 localStorage.removeItem(storageKey);
-                            } catch (e) {}
+                            } catch (e) { }
                             setRestockingItemIds(prev => prev.filter(id => id !== itemId));
                             dispatch(showToast({ message: "Initial stock added successfully", type: "success" }));
                             fetchData(true);
@@ -385,7 +385,7 @@ function InventoryContent() {
                             console.error("Silent restock error:", error);
                             try {
                                 localStorage.removeItem(storageKey);
-                            } catch (e) {}
+                            } catch (e) { }
                             setRestockingItemIds(prev => prev.filter(id => id !== itemId));
                             dispatch(showToast({ message: "Failed to add initial stock. Please restock manually.", type: "error" }));
                             fetchData(true);
@@ -509,12 +509,12 @@ function InventoryContent() {
 
                             try {
                                 localStorage.setItem(storageKey, JSON.stringify({ createdProduct, restockData }));
-                            } catch (e) {}
+                            } catch (e) { }
 
                             await inventoryService.restockProduct(createdProduct, restockData);
                             try {
                                 localStorage.removeItem(storageKey);
-                            } catch (e) {}
+                            } catch (e) { }
                             setRestockingItemIds(prev => prev.filter(id => id !== itemId));
                             dispatch(showToast({ message: "Initial stock added successfully", type: "success" }));
                             fetchData(true);
@@ -522,7 +522,7 @@ function InventoryContent() {
                             console.error("Silent restock error:", error);
                             try {
                                 localStorage.removeItem(storageKey);
-                            } catch (e) {}
+                            } catch (e) { }
                             setRestockingItemIds(prev => prev.filter(id => id !== itemId));
                             dispatch(showToast({ message: "Failed to add initial stock. Please restock manually.", type: "error" }));
                             fetchData(true);
@@ -565,10 +565,10 @@ function InventoryContent() {
 
             if (editingItem) {
                 await inventoryService.updateCustomizedProduct(editingItem.id, payload);
-                dispatch(showToast({ message: "Customized product updated successfully", type: "success" }));
+                dispatch(showToast({ message: "stocks updated successfully", type: "success" }));
             } else {
                 const response = await inventoryService.saveCustomizedProduct(payload);
-                dispatch(showToast({ message: "Customized product created successfully", type: "success" }));
+                dispatch(showToast({ message: "stocks created successfully", type: "success" }));
                 const createdId = findIdInObject(response);
                 if (data.enableRestock && createdId) {
                     const itemId = String(createdId);
@@ -598,7 +598,7 @@ function InventoryContent() {
                             await inventoryService.restockCustomizedProduct(createdProduct, restockData);
                             try {
                                 localStorage.removeItem(storageKey);
-                            } catch (e) {}
+                            } catch (e) { }
                             setRestockingItemIds(prev => prev.filter(id => id !== itemId));
                             dispatch(showToast({ message: "Initial stock added successfully", type: "success" }));
                             fetchData(true);
@@ -606,7 +606,7 @@ function InventoryContent() {
                             console.error("Silent restock error:", error);
                             try {
                                 localStorage.removeItem(storageKey);
-                            } catch (e) {}
+                            } catch (e) { }
                             setRestockingItemIds(prev => prev.filter(id => id !== itemId));
                             dispatch(showToast({ message: "Failed to add initial stock. Please restock manually.", type: "error" }));
                             fetchData(true);
@@ -618,9 +618,9 @@ function InventoryContent() {
             setEditingItem(null);
             fetchData(true);
         } catch (error) {
-            console.error("Error saving customized product:", error);
+            console.error("Error saving stocks:", error);
             const operation = editingItem ? "update" : "create";
-            const errorMsg = handleCrudError(error, operation, "customized product");
+            const errorMsg = handleCrudError(error, operation, "stocks");
             dispatch(showToast({ message: errorMsg, type: "error" }));
         } finally {
             setIsSaving(false);
@@ -628,7 +628,7 @@ function InventoryContent() {
     };
 
     const handleRestockConfirm = async (data) => {
-        const restockType = restockItem?.unit_price !== undefined ? "Raw Materials" : (restockItem?.item_type === "CUSTOMISED PRODUCTS" || activeTab === "Customized Products" ? "Customized Products" : activeTab);
+        const restockType = restockItem?.unit_price !== undefined ? "Raw Materials" : (restockItem?.item_type === "CUSTOMISED PRODUCTS" || activeTab === "Stocks" ? "Stocks" : activeTab);
         setIsSaving(true);
         try {
             if (restockType === "Raw Materials") {
@@ -665,7 +665,7 @@ function InventoryContent() {
         let title = "Item";
         if (activeTab === "Raw Materials") title = "Material";
         else if (activeTab === "Products") title = "Product";
-        else if (activeTab === "Customized Products") title = "Special Item";
+        else if (activeTab === "Stocks") title = "Special Item";
 
         dispatch(openDeleteModal({
             title: `Delete ${title}`,
@@ -688,7 +688,7 @@ function InventoryContent() {
                 dispatch(showToast({ message: "Product deleted successfully", type: "success" }));
             } else {
                 await inventoryService.deleteCustomizedProduct(item.id);
-                dispatch(showToast({ message: "Customized product deleted successfully", type: "success" }));
+                dispatch(showToast({ message: "stocks deleted successfully", type: "success" }));
             }
             await fetchData(true);
             dispatch(closeDeleteModal());
@@ -733,13 +733,13 @@ function InventoryContent() {
 
     const navbarData = {
         heading: activeTab === "Items" ? "Inventory Items" : activeTab,
-        subheading: activeTab === "Items" 
-            ? "Manage all sales and purchase items" 
+        subheading: activeTab === "Items"
+            ? "Manage all sales and purchase items"
             : activeTab === "Raw Materials"
-            ? "Track and manage raw materials for production"
-            : activeTab === "Products"
-            ? "Manage finished products and stock levels"
-            : "Manage special or customized product stock",
+                ? "Track and manage raw materials for production"
+                : activeTab === "Products"
+                    ? "Manage finished products and stock levels"
+                    : "Manage special or stocks stock",
         from: "inventory",
     };
 
@@ -757,7 +757,7 @@ function InventoryContent() {
                             {/* Tabs */}
                             <div className="flex mb-8 overflow-x-auto pb-2 scrollbar-hide">
                                 <div className="bg-[#EFEFEF]/50 p-1 rounded-xl inline-flex shadow-sm min-w-max">
-                                    {["Items", "Raw Materials", "Products", "Customized Products"].map((tab) => (
+                                    {["Items", "Raw Materials", "Products", "Stocks"].map((tab) => (
                                         <button
                                             key={tab}
                                             onClick={() => setActiveTab(tab)}
@@ -775,58 +775,58 @@ function InventoryContent() {
                             {/* Header Section */}
                             <div className="mb-8">
                                 {!isFilterVisible ? (
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                    {/* Search Bar */}
-                                    <div className="w-full sm:w-80">
-                                        <div className="relative">
-                                            <IoSearchOutline className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                                            <input
-                                                type="text"
-                                                value={searchInput}
-                                                onChange={(e) => setSearchInput(e.target.value)}
-                                                placeholder={`Search ${activeTab.toLowerCase()}...`}
-                                                className="w-full pl-12 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCA00] hover:border-[#FFCA00] text-[14px] transition-all placeholder-gray-400"
-                                            />
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                        {/* Search Bar */}
+                                        <div className="w-full sm:w-80">
+                                            <div className="relative">
+                                                <IoSearchOutline className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                                <input
+                                                    type="text"
+                                                    value={searchInput}
+                                                    onChange={(e) => setSearchInput(e.target.value)}
+                                                    placeholder={`Search ${activeTab.toLowerCase()}...`}
+                                                    className="w-full pl-12 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCA00] hover:border-[#FFCA00] text-[14px] transition-all placeholder-gray-400"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Action Buttons */}
+                                        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                                            <button
+                                                onClick={() => setIsFilterVisible(true)}
+                                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-black rounded-lg text-[14px] font-medium hover:bg-gray-50 transition-all cursor-pointer whitespace-nowrap"
+                                            >
+                                                <FiFilter size={16} /> Filter
+                                            </button>
+                                            <button
+                                                onClick={() => handleExport({
+                                                    endpoint: activeTab === "Items" ? "custom-api/admin/items_export" : activeTab === "Raw Materials" ? "custom-api/admin/inventory/raw_materials_export" : activeTab === "Products" ? "custom-api/admin/inventory/products_export" : "custom-api/admin/items_export",
+                                                    dispatch,
+                                                    setIsExporting,
+                                                    payload: activeTab === "Items" ? { category: "both" } : undefined,
+                                                    defaultFileName: `${activeTab.toLowerCase().replace(" ", "_")}_export.xlsx`
+                                                })}
+                                                disabled={isExporting}
+                                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-[#FFCA00] text-[#FFCA00] rounded-lg text-[14px] font-medium hover:bg-[#d9ac00]/5 disabled:opacity-50 cursor-pointer whitespace-nowrap"
+                                            >
+                                                {isExporting ? <FiLoader className="animate-spin" size={16} /> : <FiDownload size={16} />}
+                                                <span>{isExporting ? "Exporting..." : "Export"}</span>
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setEditingItem(null);
+                                                    if (activeTab === "Items") setIsItemModalOpen(true);
+                                                    else if (activeTab === "Raw Materials") setIsMaterialFormOpen(true);
+                                                    else if (activeTab === "Products") setIsProductFormOpen(true);
+                                                    else setIsSpecialItemFormOpen(true);
+                                                }}
+                                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-[#FFCA00] text-white rounded-lg text-[14px] font-medium cursor-pointer hover:bg-[#d9ac00] whitespace-nowrap"
+                                            >
+                                                <span>Add New {activeTab === "Raw Materials" ? "Material" : activeTab === "Products" ? "Product" : activeTab.slice(0, -1)}</span>
+                                                <FiPlus size={18} />
+                                            </button>
                                         </div>
                                     </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                                        <button
-                                            onClick={() => setIsFilterVisible(true)}
-                                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-black rounded-lg text-[14px] font-medium hover:bg-gray-50 transition-all cursor-pointer whitespace-nowrap"
-                                        >
-                                            <FiFilter size={16} /> Filter
-                                        </button>
-                                        <button
-                                            onClick={() => handleExport({
-                                                endpoint: activeTab === "Items" ? "custom-api/admin/items_export" : activeTab === "Raw Materials" ? "custom-api/admin/inventory/raw_materials_export" : activeTab === "Products" ? "custom-api/admin/inventory/products_export" : "custom-api/admin/items_export",
-                                                dispatch,
-                                                setIsExporting,
-                                                payload: activeTab === "Items" ? { category: "both" } : undefined,
-                                                defaultFileName: `${activeTab.toLowerCase().replace(" ", "_")}_export.xlsx`
-                                            })}
-                                            disabled={isExporting}
-                                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-[#FFCA00] text-[#FFCA00] rounded-lg text-[14px] font-medium hover:bg-[#d9ac00]/5 disabled:opacity-50 cursor-pointer whitespace-nowrap"
-                                        >
-                                            {isExporting ? <FiLoader className="animate-spin" size={16} /> : <FiDownload size={16} />}
-                                            <span>{isExporting ? "Exporting..." : "Export"}</span>
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setEditingItem(null);
-                                                if (activeTab === "Items") setIsItemModalOpen(true);
-                                                else if (activeTab === "Raw Materials") setIsMaterialFormOpen(true);
-                                                else if (activeTab === "Products") setIsProductFormOpen(true);
-                                                else setIsSpecialItemFormOpen(true);
-                                            }}
-                                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-[#FFCA00] text-white rounded-lg text-[14px] font-medium cursor-pointer hover:bg-[#d9ac00] whitespace-nowrap"
-                                        >
-                                            <span>Add New {activeTab === "Raw Materials" ? "Material" : activeTab === "Products" ? "Product" : activeTab.slice(0, -1)}</span>
-                                            <FiPlus size={18} />
-                                        </button>
-                                    </div>
-                                </div>
                                 ) : (
                                     <div className="flex flex-wrap items-end gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
                                         {activeTab === "Items" && (
@@ -959,7 +959,7 @@ function InventoryContent() {
                                                             <th className="px-4 lg:px-6 py-4 text-[14px] lg:text-[15px] font-semibold text-gray-700 whitespace-nowrap">Composition</th>
                                                         </>
                                                     )}
-                                                    {activeTab === "Customized Products" && (
+                                                    {activeTab === "Stocks" && (
                                                         <>
                                                             <th className="px-4 lg:px-6 py-4 text-[14px] lg:text-[15px] font-semibold text-gray-700 whitespace-nowrap rounded-tl-lg">Item Name</th>
                                                             <th className="px-4 lg:px-6 py-4 text-[14px] lg:text-[15px] font-semibold text-gray-700 whitespace-nowrap text-right">In Stock</th>
@@ -973,17 +973,16 @@ function InventoryContent() {
                                             </thead>
                                             <tbody className="divide-y divide-gray-100">
                                                 {filteredData.map((item, idx) => (
-                                                    <tr 
-                                                        key={item.id} 
+                                                    <tr
+                                                        key={item.id}
                                                         className="hover:bg-gray-50 transition-colors"
                                                     >
                                                         {activeTab === "Items" && (
                                                             <>
                                                                 <td className="px-4 lg:px-6 py-4 text-[14px] lg:text-[15px] text-gray-700 whitespace-nowrap">{item.name}</td>
                                                                 <td className="px-4 lg:px-6 py-4 text-center">
-                                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
-                                                                        item.category === "SALES" ? "bg-blue-50 text-blue-500 border-blue-100" : item.category === "PURCHASE" ? "bg-purple-50 text-purple-500 border-purple-100" : "bg-green-50 text-green-500 border-green-100"
-                                                                    }`}>
+                                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold border ${item.category === "SALES" ? "bg-blue-50 text-blue-500 border-blue-100" : item.category === "PURCHASE" ? "bg-purple-50 text-purple-500 border-purple-100" : "bg-green-50 text-green-500 border-green-100"
+                                                                        }`}>
                                                                         {item.category?.charAt(0).toUpperCase() + item.category?.slice(1).toLowerCase() || "—"}
                                                                     </span>
                                                                 </td>
@@ -1030,7 +1029,7 @@ function InventoryContent() {
                                                                 </td>
                                                             </>
                                                         )}
-                                                        {activeTab === "Customized Products" && (
+                                                        {activeTab === "Stocks" && (
                                                             <>
                                                                 <td className="px-4 lg:px-6 py-4 text-[14px] lg:text-[15px] text-gray-700 whitespace-nowrap">{item.name}</td>
                                                                 <td className="px-4 lg:px-6 py-4 text-[14px] lg:text-[15px] text-gray-700 text-right">
@@ -1113,12 +1112,12 @@ function InventoryContent() {
                                             quantity: c.quantity_used,
                                             cost_per_unit: c.raw_material_id?.unit_price || 0
                                         }));
-                                        setEditingItem({ 
-                                            ...item, 
+                                        setEditingItem({
+                                            ...item,
                                             selling_price: item.rate,
                                             cost_price: item.Production_cost,
                                             quantity: item.current_quantity,
-                                            composition: mappedComp 
+                                            composition: mappedComp
                                         });
                                         setIsProductFormOpen(true);
                                     } else setIsSpecialItemFormOpen(true);
@@ -1191,7 +1190,7 @@ function InventoryContent() {
                         item={restockItem}
                         isSaving={isSaving}
                         suppliers={suppliers}
-                        type={restockItem?.unit_price !== undefined ? "Raw Materials" : (restockItem?.item_type === "CUSTOMISED PRODUCTS" || activeTab === "Customized Products" ? "Customized Products" : activeTab)}
+                        type={restockItem?.unit_price !== undefined ? "Raw Materials" : (restockItem?.item_type === "CUSTOMISED PRODUCTS" || activeTab === "Stocks" ? "Stocks" : activeTab)}
                     />
                 </>
             )}

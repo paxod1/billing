@@ -383,19 +383,19 @@ const PurchaseOrderForm = ({ isOpen, onClose, onSave, editData = null, viewOnly 
 
             const response = await inventoryService.saveRawMaterial(mappedPayload);
             dispatch(showToast({ message: "Raw material created successfully", type: "success" }));
-            
+
             // Re-fetch items list with the current lockedCountry filter
             const fetched = await fetchItems(lockedCountry);
-            
+
             // Auto-select the newly created material
             const createdId = findIdInObject(response);
             const finalId = createdId ? Number(createdId) : null;
-            
+
             if (finalId && activeRowIdx !== null) {
                 const list = fetched ? fetched.rawMaterialsList : null;
                 handleItemChange(activeRowIdx, "item_id", finalId, list);
             }
-            
+
             setIsMaterialFormOpen(false);
         } catch (error) {
             console.error("Error creating raw material from purchase form:", error);
@@ -424,24 +424,24 @@ const PurchaseOrderForm = ({ isOpen, onClose, onSave, editData = null, viewOnly 
             };
 
             const response = await inventoryService.saveCustomizedProduct(mappedPayload);
-            dispatch(showToast({ message: "Customized product created successfully", type: "success" }));
-            
+            dispatch(showToast({ message: "stocks created successfully", type: "success" }));
+
             // Re-fetch items list
             const fetched = await fetchItems(lockedCountry);
-            
+
             // Auto-select
             const createdId = findIdInObject(response);
             const finalId = createdId ? Number(createdId) : null;
-            
+
             if (finalId && activeRowIdx !== null) {
                 const list = fetched ? fetched.customizedProductsList : null;
                 handleItemChange(activeRowIdx, "item_id", finalId, list);
             }
-            
+
             setIsSpecialItemFormOpen(false);
         } catch (error) {
-            console.error("Error creating customized product from purchase form:", error);
-            dispatch(showToast({ message: "Failed to create customized product", type: "error" }));
+            console.error("Error creating stocks from purchase form:", error);
+            dispatch(showToast({ message: "Failed to create stocks", type: "error" }));
         } finally {
             setIsSavingPopup(false);
         }
@@ -506,7 +506,7 @@ const PurchaseOrderForm = ({ isOpen, onClose, onSave, editData = null, viewOnly 
 
             const selectedItem = activeList.find(i => i.id == value);
             if (selectedItem) {
-                // Raw materials use `unit_price`; products use `rate`; customized products use `Production_cost`
+                // Raw materials use `unit_price`; products use `rate`; Stocks use `Production_cost`
                 let itemRate = 0;
                 if (newItems[index].source_type === "raw_material") {
                     itemRate = parseFloat(selectedItem.unit_price || 0);
@@ -881,7 +881,7 @@ const PurchaseOrderForm = ({ isOpen, onClose, onSave, editData = null, viewOnly 
                                                                         onChange={(val) => handleItemChange(idx, "source_type", val)}
                                                                         options={[
                                                                             { value: "raw_material", label: "Raw Material" },
-                                                                            { value: "customized_product", label: "Customized Product" },
+                                                                            { value: "customized_product", label: "stocks" },
                                                                             { value: "service", label: "Service" }
                                                                         ]}
                                                                     />
@@ -934,7 +934,7 @@ const PurchaseOrderForm = ({ isOpen, onClose, onSave, editData = null, viewOnly 
                                                                                             .filter(i => !formData.items.some((it, fIdx) => fIdx !== idx && it.source_type === "customized_product" && it.item_id == i.id))
                                                                                             .map(i => ({ value: i.id, label: i.name }));
                                                                                         return [
-                                                                                            { value: "new_customized_product", label: "+ Add New Customized Product" },
+                                                                                            { value: "new_customized_product", label: "+ Add New stocks" },
                                                                                             ...listOptions
                                                                                         ];
                                                                                     }
@@ -1227,7 +1227,7 @@ const PurchaseOrderForm = ({ isOpen, onClose, onSave, editData = null, viewOnly 
                                                 items: formData.items.map(item => {
                                                     let typeLabel = "Product";
                                                     if (item.source_type === "raw_material") typeLabel = "Product";
-                                                    else if (item.source_type === "customized_product") typeLabel = "Customized Product";
+                                                    else if (item.source_type === "customized_product") typeLabel = "stocks";
                                                     else if (item.source_type === "service") typeLabel = "Service";
                                                     return {
                                                         ...item,

@@ -236,7 +236,7 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
                         let mappedItemId = line.item_id || "";
 
                         if (lineCat === "materials") {
-                            const isCustomObj = meta.type === "customized product";
+                            const isCustomObj = meta.type === "stocks";
                             const targetList = isCustomObj ? customizedProductsList : productsList;
                             const match = targetList.find(p => p.name?.toLowerCase() === (meta.name || line.description)?.toLowerCase() || p.id == line.item_id);
                             if (match) {
@@ -312,7 +312,7 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
             if (sourceType === "time") itemType = "Time";
             else if (sourceType === "mileage") itemType = "Mileage";
             else if (sourceType === "service") itemType = "Service";
-            else if (customizedProductsList.some(cp => cp.id == mappedItemId)) itemType = "Customized Product";
+            else if (customizedProductsList.some(cp => cp.id == mappedItemId)) itemType = "stocks";
 
             const metadata = { ...(item.metadata || {}) };
             if (sourceType === "time") {
@@ -465,7 +465,7 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
             if (sourceType === "time" || sourceType === "mileage" || sourceType === "service") {
                 baseItem.source_id = Number(item.item_id) || null;
                 baseItem.item_id = null;
-                
+
                 if (sourceType === "time") {
                     baseItem.description = item.description || item.metadata?.name || "Time Entry";
                     baseItem.metadata = {
@@ -669,7 +669,7 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
         }, 2000);
     };
 
-    
+
     const loadMileageAddressOptions = async (inputValue) => {
         if (!inputValue || inputValue.length < 2) return [];
         await new Promise(resolve => setTimeout(resolve, 300));
@@ -928,15 +928,15 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
         setIsAddItemMenuOpen(false);
         setFormData(prev => {
             const maxSortKey = prev.items.reduce((max, item) => Math.max(max, item.sort_key || 0), 0);
-            
+
             let newItem = {
                 type: type,
                 source_type: type === "Product" ? "product" :
-                             type === "Customized Product" ? "customized" :
-                             type === "Service" ? "service" :
-                             type === "Time" ? "time" :
-                             type === "Mileage" ? "mileage" :
-                             type === "Estimation" ? "estimation" : "product",
+                    type === "stocks" ? "customized" :
+                        type === "Service" ? "service" :
+                            type === "Time" ? "time" :
+                                type === "Mileage" ? "mileage" :
+                                    type === "Estimation" ? "estimation" : "product",
                 item_id: "",
                 tax_id: "",
                 quantity: 1,
@@ -1071,7 +1071,7 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
         }
 
         if (field === "item_id") {
-            if (newItems[index].type === "Product" || newItems[index].type === "Customized Product") {
+            if (newItems[index].type === "Product" || newItems[index].type === "stocks") {
                 const listToSearch = overrideList || (newItems[index].type === "Product" ? productsList : customizedProductsList);
                 const selectedItem = listToSearch.find(i => i.id == value);
                 if (selectedItem) {
@@ -1311,7 +1311,7 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
             };
 
             const response = await inventoryService.saveCustomizedProduct(payload);
-            dispatch(showToast({ message: "Customized product created successfully", type: "success" }));
+            dispatch(showToast({ message: "stocks created successfully", type: "success" }));
 
             const createdId = findIdInObject(response);
             if (apiPayload.enableRestock && createdId) {
@@ -1328,7 +1328,7 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
                 };
 
                 try {
-                    await processRestock(createdProduct, restockData, "Customized Products");
+                    await processRestock(createdProduct, restockData, "Stocks");
                     dispatch(showToast({ message: "Stock restocked and purchase invoice & payment recorded successfully", type: "success" }));
                 } catch (err) {
                     console.error("Restock error:", err);
@@ -1346,8 +1346,8 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
 
             setIsSpecialItemFormOpen(false);
         } catch (error) {
-            console.error("Error creating customized product from sales form:", error);
-            dispatch(showToast({ message: "Failed to create customized product", type: "error" }));
+            console.error("Error creating stocks from sales form:", error);
+            dispatch(showToast({ message: "Failed to create stocks", type: "error" }));
         } finally {
             setIsSavingPopup(false);
         }
@@ -1377,7 +1377,7 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
         }
     };
 
-    const handleEstimationItemSelect = async (index, itemId) => {};
+    const handleEstimationItemSelect = async (index, itemId) => { };
 
     const renderCardBody = (item, idx) => {
         const type = item.type || item.source_type;
@@ -1477,7 +1477,7 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
             );
         }
 
-        if (type === "Customized Product" || type === "customized") {
+        if (type === "stocks" || type === "customized") {
             const selectedProduct = customizedProductsList.find(i => i.id == item.item_id);
             const dbItems = Array.isArray(editData?.items) ? editData.items : [];
             const originalDbItem = dbItems.find(dbItem => dbItem.source_id == item.item_id || dbItem.item_id == item.item_id);
@@ -1502,12 +1502,12 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
                                 }
                             }}
                             options={[
-                                { value: "new_customized_product", label: "+ Add New Customized Product" },
+                                { value: "new_customized_product", label: "+ Add New stocks" },
                                 ...customizedProductsList
                                     .filter(i => !formData.items.some((it, fIdx) => fIdx !== idx && it.type === item.type && it.item_id == i.id))
                                     .map(i => ({ value: i.id, label: i.name }))
                             ]}
-                            placeholder="Select Customized Product"
+                            placeholder="Select stocks"
                             className="rounded-xl h-[38px] shadow-none"
                         />
                     </div>
@@ -1865,7 +1865,7 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 w-full max-w-4xl">
                         {[
                             { id: "Product", label: "Product", icon: FiBox, color: "hover:border-[#FFCA00] hover:text-[#FFCA00] hover:bg-amber-50/10" },
-                            { id: "Customized Product", label: "Customized", icon: FiSettings, color: "hover:border-purple-500 hover:text-purple-600 hover:bg-purple-50/10" },
+                            { id: "stocks", label: "Customized", icon: FiSettings, color: "hover:border-purple-500 hover:text-purple-600 hover:bg-purple-50/10" },
                             { id: "Service", label: "Service", icon: FiTool, color: "hover:border-green-500 hover:text-green-600 hover:bg-green-50/10" },
                             { id: "Time", label: "Time", icon: FiClock, color: "hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50/10" },
                             { id: "Mileage", label: "Mileage", icon: FiMapPin, color: "hover:border-rose-500 hover:text-rose-600 hover:bg-rose-50/10" },
@@ -1967,8 +1967,8 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
                 } else if (cat === "materials") {
                     let qty = field === "qty" ? parseFloat(value || 0) : (updatedMetadata.qty || 0);
 
-                    if (field === "qty" && item.item_id && (updatedMetadata.type === "product" || updatedMetadata.type === "customized product")) {
-                        const list = updatedMetadata.type === "customized product" ? customizedProductsList : productsList;
+                    if (field === "qty" && item.item_id && (updatedMetadata.type === "product" || updatedMetadata.type === "stocks")) {
+                        const list = updatedMetadata.type === "stocks" ? customizedProductsList : productsList;
                         const product = list.find(p => p.id == item.item_id);
                         const stock = product?.current_quantity || 0;
                         if (qty > stock) {
@@ -2044,7 +2044,7 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
         }
 
         if (field === "item_id") {
-            if (newItems[index].type === "Product" || newItems[index].type === "Customized Product") {
+            if (newItems[index].type === "Product" || newItems[index].type === "stocks") {
                 const listToSearch = newItems[index].type === "Product" ? productsList : customizedProductsList;
                 const selectedItem = listToSearch.find(i => i.id == value);
                 if (selectedItem) {
@@ -2131,7 +2131,7 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
                             let mappedItemId = line.item_id || "";
 
                             if (lineCat === "materials") {
-                                const isCustomObj = meta.type === "customized product";
+                                const isCustomObj = meta.type === "stocks";
                                 const targetList = isCustomObj ? customizedProductsList : productsList;
                                 const match = targetList.find(p => p.name?.toLowerCase() === (meta.name || line.description)?.toLowerCase() || p.id == line.item_id);
                                 if (match) {
@@ -2206,7 +2206,7 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
         if (field === "quantity" || field === "rate") {
             let qty = field === "quantity" ? parseFloat(value) || 0 : newItems[index].quantity;
             const rate = field === "rate" ? parseFloat(value) || 0 : newItems[index].rate;
-            if (field === "quantity" && qty < 1 && (newItems[index].type === "Product" || newItems[index].type === "Customized Product")) {
+            if (field === "quantity" && qty < 1 && (newItems[index].type === "Product" || newItems[index].type === "stocks")) {
                 qty = 1;
             }
             newItems[index].amount = qty * rate;
@@ -2215,10 +2215,10 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
         setFormData(prev => ({ ...prev, items: newItems }));
     };
 
-    // Handler for estimation item selection (Product/Customized Product)
+    // Handler for estimation item selection (Product/stocks)
     const legacy_handleEstimationItemSelect = async (index, itemId) => {
         const itemType = formData.items[index].metadata?.type || "product";
-        const list = itemType === "customized product" ? customizedProductsList : productsList;
+        const list = itemType === "stocks" ? customizedProductsList : productsList;
         const selected = list.find(i => i.id == itemId);
 
         if (selected) {
@@ -2304,16 +2304,16 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
 
             // --- STOCK VALIDATION ---
             const overstockItem = formData.items.find(item => {
-                const isItemType = (item.type === "Product" || item.type === "Customized Product") ||
+                const isItemType = (item.type === "Product" || item.type === "stocks") ||
                     (item.source_type === "product" || item.source_type === "customized");
                 const isEstimationMaterial = item.source_type === "estimation" &&
-                    (item.metadata?.type === "product" || item.metadata?.type === "customized product") &&
+                    (item.metadata?.type === "product" || item.metadata?.type === "stocks") &&
                     item.item_id;
 
                 if (!isItemType && !isEstimationMaterial) return false;
 
                 const qty = isEstimationMaterial ? (parseFloat(item.metadata?.qty) || 0) : (parseFloat(item.quantity) || 0);
-                const list = (item.type === "Customized Product" || item.metadata?.type === "customized product" || item.source_type === "customized")
+                const list = (item.type === "stocks" || item.metadata?.type === "stocks" || item.source_type === "customized")
                     ? customizedProductsList
                     : productsList;
                 const dbProduct = list.find(i => i.id == item.item_id);
@@ -2594,7 +2594,7 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
                                                     <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 py-2 max-h-72 overflow-y-auto ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200">
                                                         {[
                                                             { id: "Product", label: "Product", icon: FiBox },
-                                                            { id: "Customized Product", label: "Customized Product", icon: FiSettings },
+                                                            { id: "stocks", label: "stocks", icon: FiSettings },
                                                             { id: "Service", label: "Service", icon: FiTool },
                                                             { id: "Time", label: "Time", icon: FiClock },
                                                             { id: "Mileage", label: "Mileage", icon: FiMapPin },
@@ -2647,7 +2647,7 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
                                                                                 onChange={(val) => handleItemChange(idx, "type", val)}
                                                                                 options={[
                                                                                     { value: "Product", label: "Product" },
-                                                                                    { value: "Customized Product", label: "Customized Product" },
+                                                                                    { value: "stocks", label: "stocks" },
                                                                                     { value: "Service", label: "Service" },
                                                                                     { value: "Time", label: "Time" },
                                                                                     { value: "Mileage", label: "Mileage" },
@@ -2675,31 +2675,31 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
                                                                             }}
                                                                             options={(() => {
                                                                                 const list = (
-                                                                                    item.type === "Product" ? productsList : 
-                                                                                    item.type === "Customized Product" ? customizedProductsList : 
-                                                                                    item.type === "Time" ? timeList :
-                                                                                    item.type === "Mileage" ? mileageList :
-                                                                                    item.type === "Estimation" ? estimationList :
-                                                                                    []
+                                                                                    item.type === "Product" ? productsList :
+                                                                                        item.type === "stocks" ? customizedProductsList :
+                                                                                            item.type === "Time" ? timeList :
+                                                                                                item.type === "Mileage" ? mileageList :
+                                                                                                    item.type === "Estimation" ? estimationList :
+                                                                                                        []
                                                                                 )
                                                                                     .filter(i => !formData.items.some((it, fIdx) => fIdx !== idx && it.type === item.type && it.item_id == i.id))
                                                                                     .map(i => ({
                                                                                         value: i.id,
-                                                                                        label: 
-                                                                                            item.type === "Estimation" 
+                                                                                        label:
+                                                                                            item.type === "Estimation"
                                                                                                 ? (i.name ? `${i.name} (${i.estimation_number || 'EST'})` : `${i.estimation_number || 'EST'}`)
                                                                                                 : item.type === "Time"
-                                                                                                ? `${i.name || 'Time Entry'} (${i.duration_minutes ? Math.floor(i.duration_minutes / 60) + 'h ' + (i.duration_minutes % 60) + 'm' : '0m'})`
-                                                                                                : item.type === "Mileage"
-                                                                                                ? `${i.name || 'Trip'} (${i.distance_km || '0'} km)`
-                                                                                                : i.name || "Item",
-                                                                                        isDisabled: (item.type === "Product" || item.type === "Customized Product") ? parseFloat(i.current_quantity || 0) <= 0 : false
+                                                                                                    ? `${i.name || 'Time Entry'} (${i.duration_minutes ? Math.floor(i.duration_minutes / 60) + 'h ' + (i.duration_minutes % 60) + 'm' : '0m'})`
+                                                                                                    : item.type === "Mileage"
+                                                                                                        ? `${i.name || 'Trip'} (${i.distance_km || '0'} km)`
+                                                                                                        : i.name || "Item",
+                                                                                        isDisabled: (item.type === "Product" || item.type === "stocks") ? parseFloat(i.current_quantity || 0) <= 0 : false
                                                                                     }));
                                                                                 if (item.type === "Product") {
                                                                                     return [{ value: "new_product", label: "+ Add New Product" }, ...list];
                                                                                 }
-                                                                                if (item.type === "Customized Product") {
-                                                                                    return [{ value: "new_customized_product", label: "+ Add New Customized Product" }, ...list];
+                                                                                if (item.type === "stocks") {
+                                                                                    return [{ value: "new_customized_product", label: "+ Add New stocks" }, ...list];
                                                                                 }
                                                                                 return list;
                                                                             })()}
@@ -2709,47 +2709,47 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
                                                                         />
                                                                     </div>
                                                                 </td>
-                                                                    <td className="px-4 py-4 text-gray-900 font-medium whitespace-nowrap">
-                                                                        {item.tax_percent}%
-                                                                    </td>
-                                                                    <td className="px-4 py-4">
-                                                                        <div className="flex flex-col gap-1">
-                                                                            <input
-                                                                                type="number"
-                                                                                value={item.quantity}
-                                                                                onChange={(e) => handleItemChange(idx, "quantity", parseFloat(e.target.value))}
-                                                                                className={`w-20 px-3 py-2 bg-gray-50 border-0 rounded-full text-center font-medium focus:ring-0 ${(item.type === "Product" || item.type === "Customized Product") && item.quantity > ((item.type === "Customized Product" ? customizedProductsList : productsList).find(i => i.id == item.item_id)?.current_quantity || 0) ? "border-red-500 text-red-600 animate-pulse bg-red-50" : ""}`}
-                                                                            />
-                                                                            {(item.type === "Product" || item.type === "Customized Product") && item.item_id && (
-                                                                                <p className={`text-[9px] font-bold ${item.quantity > ((item.type === "Customized Product" ? customizedProductsList : productsList).find(i => i.id == item.item_id)?.current_quantity || 0) ? "text-red-500" : "text-gray-400"}`}>
-                                                                                    Stock: {(item.type === "Customized Product" ? customizedProductsList : productsList).find(i => i.id == item.item_id)?.current_quantity || 0}
-                                                                                </p>
-                                                                            )}
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-4 py-4 text-gray-900 font-medium whitespace-nowrap">
-                                                                        <div className="flex items-center gap-1">
-                                                                            <span className="text-gray-400">₹</span>
-                                                                            <input
-                                                                                type="number"
-                                                                                value={item.rate}
-                                                                                onChange={(e) => handleItemChange(idx, "rate", parseFloat(e.target.value))}
-                                                                                className="w-24 px-3 py-2 bg-transparent border-0 font-bold focus:ring-0"
-                                                                            />
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-4 py-4 text-right font-medium text-gray-900 whitespace-nowrap">
-                                                                        ₹ {item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                                    </td>
-                                                                    <td className="px-4 py-4 text-center">
-                                                                        <button
-                                                                            onClick={() => handleRemoveItem(idx)}
-                                                                            className="text-red-400 hover:text-red-600 transition-colors"
-                                                                        >
-                                                                            <FiTrash2 size={18} />
-                                                                        </button>
-                                                                    </td>
-                                                                </tr>
+                                                                <td className="px-4 py-4 text-gray-900 font-medium whitespace-nowrap">
+                                                                    {item.tax_percent}%
+                                                                </td>
+                                                                <td className="px-4 py-4">
+                                                                    <div className="flex flex-col gap-1">
+                                                                        <input
+                                                                            type="number"
+                                                                            value={item.quantity}
+                                                                            onChange={(e) => handleItemChange(idx, "quantity", parseFloat(e.target.value))}
+                                                                            className={`w-20 px-3 py-2 bg-gray-50 border-0 rounded-full text-center font-medium focus:ring-0 ${(item.type === "Product" || item.type === "stocks") && item.quantity > ((item.type === "stocks" ? customizedProductsList : productsList).find(i => i.id == item.item_id)?.current_quantity || 0) ? "border-red-500 text-red-600 animate-pulse bg-red-50" : ""}`}
+                                                                        />
+                                                                        {(item.type === "Product" || item.type === "stocks") && item.item_id && (
+                                                                            <p className={`text-[9px] font-bold ${item.quantity > ((item.type === "stocks" ? customizedProductsList : productsList).find(i => i.id == item.item_id)?.current_quantity || 0) ? "text-red-500" : "text-gray-400"}`}>
+                                                                                Stock: {(item.type === "stocks" ? customizedProductsList : productsList).find(i => i.id == item.item_id)?.current_quantity || 0}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-4 text-gray-900 font-medium whitespace-nowrap">
+                                                                    <div className="flex items-center gap-1">
+                                                                        <span className="text-gray-400">₹</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            value={item.rate}
+                                                                            onChange={(e) => handleItemChange(idx, "rate", parseFloat(e.target.value))}
+                                                                            className="w-24 px-3 py-2 bg-transparent border-0 font-bold focus:ring-0"
+                                                                        />
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-4 text-right font-medium text-gray-900 whitespace-nowrap">
+                                                                    ₹ {item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                </td>
+                                                                <td className="px-4 py-4 text-center">
+                                                                    <button
+                                                                        onClick={() => handleRemoveItem(idx)}
+                                                                        className="text-red-400 hover:text-red-600 transition-colors"
+                                                                    >
+                                                                        <FiTrash2 size={18} />
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
 
                                                             {/* Expanded Panel for specialized items */}
                                                             {(item.source_type === "time" || item.source_type === "mileage" || item.source_type === "estimation" || item.source_type === "service") && (
@@ -3143,107 +3143,189 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
                                                                                         <div className="overflow-x-auto pb-4">
                                                                                             <div className="flex items-start gap-8 min-w-[1050px] md:min-w-full">
                                                                                                 <div className="flex-1">
-                                                                                                {(() => {
-                                                                                                    const category = (item.metadata?.line_category || item.metadata?.category || item.metadata?.type || item.type || "Estimation").toLowerCase();
-                                                                                                    const commonInputClass = "w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-yellow-400 focus:border-yellow-400 font-medium placeholder:text-gray-300 transition-all shadow-none h-[40px]";
-                                                                                                    const commonLabelClass = "text-[11px] font-bold text-gray-600 mb-1.5 block tracking-tight";
+                                                                                                    {(() => {
+                                                                                                        const category = (item.metadata?.line_category || item.metadata?.category || item.metadata?.type || item.type || "Estimation").toLowerCase();
+                                                                                                        const commonInputClass = "w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-yellow-400 focus:border-yellow-400 font-medium placeholder:text-gray-300 transition-all shadow-none h-[40px]";
+                                                                                                        const commonLabelClass = "text-[11px] font-bold text-gray-600 mb-1.5 block tracking-tight";
 
-                                                                                                    if (category === "manpower") {
-                                                                                                        return (
-                                                                                                            <div className="grid grid-cols-10 gap-4 min-w-[900px] md:min-w-full">
-                                                                                                                <div className="col-span-3">
-                                                                                                                    <label className={commonLabelClass}>Source</label>
-                                                                                                                    <CustomSelect
-                                                                                                                        value={item.metadata?.source || "internal"}
-                                                                                                                        onChange={(val) => handleMetadataChange(idx, "source", val)}
-                                                                                                                        options={[
-                                                                                                                            { value: "internal", label: "Internal" },
-                                                                                                                            { value: "external", label: "External" },
-                                                                                                                        ]}
-                                                                                                                        placeholder="Select Source"
-                                                                                                                        className="rounded-lg h-[40px] shadow-none"
-                                                                                                                    />
-                                                                                                                </div>
-                                                                                                                <div className="col-span-3">
-                                                                                                                    <label className={commonLabelClass}>Role</label>
-                                                                                                                    <input type="text" placeholder="e.g. Engineer" value={item.metadata?.role ?? ""} onChange={(e) => handleMetadataChange(idx, "role", e.target.value)} className={commonInputClass} />
-                                                                                                                </div>
-                                                                                                                <div className="col-span-2">
-                                                                                                                    <label className={commonLabelClass}>Hours</label>
-                                                                                                                    <input type="text" placeholder="0" value={item.metadata?.hours ?? ""} onChange={(e) => handleMetadataChange(idx, "hours", e.target.value)} className={commonInputClass} />
-                                                                                                                </div>
-                                                                                                                <div className="col-span-2">
-                                                                                                                    <label className={commonLabelClass}>Rate</label>
-                                                                                                                    <input type="text" placeholder="0.00" value={item.rate ?? ""} onChange={(e) => handleItemChange(idx, "rate", e.target.value)} className={commonInputClass} />
-                                                                                                                </div>
-                                                                                                            </div>
-                                                                                                        );
-                                                                                                    } else if (category === "materials") {
-                                                                                                        return (
-                                                                                                            <div className="grid grid-cols-12 gap-4 min-w-[900px] md:min-w-full">
-                                                                                                                <div className="col-span-3">
-                                                                                                                    <label className={commonLabelClass}>Type</label>
-                                                                                                                    <CustomSelect
-                                                                                                                        value={item.metadata?.type || item.metadata?.materialType || "product"}
-                                                                                                                        onChange={(val) => handleMetadataChange(idx, "type", val)}
-                                                                                                                        options={[
-                                                                                                                            { value: "product", label: "Product" },
-                                                                                                                            { value: "customized product", label: "Customized Product" },
-                                                                                                                        ]}
-                                                                                                                        placeholder="Select Type"
-                                                                                                                        className="rounded-lg h-[40px] shadow-none"
-                                                                                                                    />
-                                                                                                                </div>
-                                                                                                                <div className="col-span-3">
-                                                                                                                    <label className={commonLabelClass}>Item Name</label>
-                                                                                                                    {item.metadata?.type === "product" || item.metadata?.type === "customized product" ? (
+                                                                                                        if (category === "manpower") {
+                                                                                                            return (
+                                                                                                                <div className="grid grid-cols-10 gap-4 min-w-[900px] md:min-w-full">
+                                                                                                                    <div className="col-span-3">
+                                                                                                                        <label className={commonLabelClass}>Source</label>
                                                                                                                         <CustomSelect
-                                                                                                                            value={item.item_id || ""}
-                                                                                                                            onChange={(val) => handleEstimationItemSelect(idx, val)}
-                                                                                                                            options={(item.metadata?.type === "customized product" ? customizedProductsList : productsList)
-                                                                                                                                .filter(p => !formData.items.some((it, fIdx) => fIdx !== idx && it.item_id == p.id))
-                                                                                                                                .map(p => ({
-                                                                                                                                    value: p.id,
-                                                                                                                                    label: p.name
-                                                                                                                                }))}
-                                                                                                                            placeholder="Select Item"
+                                                                                                                            value={item.metadata?.source || "internal"}
+                                                                                                                            onChange={(val) => handleMetadataChange(idx, "source", val)}
+                                                                                                                            options={[
+                                                                                                                                { value: "internal", label: "Internal" },
+                                                                                                                                { value: "external", label: "External" },
+                                                                                                                            ]}
+                                                                                                                            placeholder="Select Source"
                                                                                                                             className="rounded-lg h-[40px] shadow-none"
                                                                                                                         />
-                                                                                                                    ) : (
-                                                                                                                        <input type="text" placeholder="Item name" value={item.metadata?.name ?? ""} onChange={(e) => handleMetadataChange(idx, "name", e.target.value)} className={commonInputClass} />
-                                                                                                                    )}
+                                                                                                                    </div>
+                                                                                                                    <div className="col-span-3">
+                                                                                                                        <label className={commonLabelClass}>Role</label>
+                                                                                                                        <input type="text" placeholder="e.g. Engineer" value={item.metadata?.role ?? ""} onChange={(e) => handleMetadataChange(idx, "role", e.target.value)} className={commonInputClass} />
+                                                                                                                    </div>
+                                                                                                                    <div className="col-span-2">
+                                                                                                                        <label className={commonLabelClass}>Hours</label>
+                                                                                                                        <input type="text" placeholder="0" value={item.metadata?.hours ?? ""} onChange={(e) => handleMetadataChange(idx, "hours", e.target.value)} className={commonInputClass} />
+                                                                                                                    </div>
+                                                                                                                    <div className="col-span-2">
+                                                                                                                        <label className={commonLabelClass}>Rate</label>
+                                                                                                                        <input type="text" placeholder="0.00" value={item.rate ?? ""} onChange={(e) => handleItemChange(idx, "rate", e.target.value)} className={commonInputClass} />
+                                                                                                                    </div>
                                                                                                                 </div>
-                                                                                                                <div className="col-span-2">
-                                                                                                                    <label className={commonLabelClass}>Qty</label>
-                                                                                                                    <input
-                                                                                                                        type="text"
-                                                                                                                        placeholder="0"
-                                                                                                                        value={item.metadata?.qty ?? ""}
-                                                                                                                        onChange={(e) => handleMetadataChange(idx, "qty", e.target.value)}
-                                                                                                                        className={`${commonInputClass} ${item.item_id && (item.metadata?.type === "product" || item.metadata?.type === "customized product") && (parseFloat(item.metadata?.qty) || 0) >= ((item.metadata?.type === "customized product" ? customizedProductsList : productsList).find(p => p.id == item.item_id)?.current_quantity || 0) ? "border-red-500 text-red-600 animate-pulse bg-red-50" : ""}`}
-                                                                                                                    />
-                                                                                                                    {item.item_id && (item.metadata?.type === "product" || item.metadata?.type === "customized product") && (
-                                                                                                                        <p className={`text-[9px] font-bold mt-1 ${(parseFloat(item.metadata?.qty) || 0) >= ((item.metadata?.type === "customized product" ? customizedProductsList : productsList).find(p => p.id == item.item_id)?.current_quantity || 0) ? "text-red-500 font-extrabold" : "text-gray-400"}`}>
-                                                                                                                            Stock: {(item.metadata?.type === "customized product" ? customizedProductsList : productsList).find(p => p.id == item.item_id)?.current_quantity || 0}
-                                                                                                                        </p>
-                                                                                                                    )}
+                                                                                                            );
+                                                                                                        } else if (category === "materials") {
+                                                                                                            return (
+                                                                                                                <div className="grid grid-cols-12 gap-4 min-w-[900px] md:min-w-full">
+                                                                                                                    <div className="col-span-3">
+                                                                                                                        <label className={commonLabelClass}>Type</label>
+                                                                                                                        <CustomSelect
+                                                                                                                            value={item.metadata?.type || item.metadata?.materialType || "product"}
+                                                                                                                            onChange={(val) => handleMetadataChange(idx, "type", val)}
+                                                                                                                            options={[
+                                                                                                                                { value: "product", label: "Product" },
+                                                                                                                                { value: "stocks", label: "stocks" },
+                                                                                                                            ]}
+                                                                                                                            placeholder="Select Type"
+                                                                                                                            className="rounded-lg h-[40px] shadow-none"
+                                                                                                                        />
+                                                                                                                    </div>
+                                                                                                                    <div className="col-span-3">
+                                                                                                                        <label className={commonLabelClass}>Item Name</label>
+                                                                                                                        {item.metadata?.type === "product" || item.metadata?.type === "stocks" ? (
+                                                                                                                            <CustomSelect
+                                                                                                                                value={item.item_id || ""}
+                                                                                                                                onChange={(val) => handleEstimationItemSelect(idx, val)}
+                                                                                                                                options={(item.metadata?.type === "stocks" ? customizedProductsList : productsList)
+                                                                                                                                    .filter(p => !formData.items.some((it, fIdx) => fIdx !== idx && it.item_id == p.id))
+                                                                                                                                    .map(p => ({
+                                                                                                                                        value: p.id,
+                                                                                                                                        label: p.name
+                                                                                                                                    }))}
+                                                                                                                                placeholder="Select Item"
+                                                                                                                                className="rounded-lg h-[40px] shadow-none"
+                                                                                                                            />
+                                                                                                                        ) : (
+                                                                                                                            <input type="text" placeholder="Item name" value={item.metadata?.name ?? ""} onChange={(e) => handleMetadataChange(idx, "name", e.target.value)} className={commonInputClass} />
+                                                                                                                        )}
+                                                                                                                    </div>
+                                                                                                                    <div className="col-span-2">
+                                                                                                                        <label className={commonLabelClass}>Qty</label>
+                                                                                                                        <input
+                                                                                                                            type="text"
+                                                                                                                            placeholder="0"
+                                                                                                                            value={item.metadata?.qty ?? ""}
+                                                                                                                            onChange={(e) => handleMetadataChange(idx, "qty", e.target.value)}
+                                                                                                                            className={`${commonInputClass} ${item.item_id && (item.metadata?.type === "product" || item.metadata?.type === "stocks") && (parseFloat(item.metadata?.qty) || 0) >= ((item.metadata?.type === "stocks" ? customizedProductsList : productsList).find(p => p.id == item.item_id)?.current_quantity || 0) ? "border-red-500 text-red-600 animate-pulse bg-red-50" : ""}`}
+                                                                                                                        />
+                                                                                                                        {item.item_id && (item.metadata?.type === "product" || item.metadata?.type === "stocks") && (
+                                                                                                                            <p className={`text-[9px] font-bold mt-1 ${(parseFloat(item.metadata?.qty) || 0) >= ((item.metadata?.type === "stocks" ? customizedProductsList : productsList).find(p => p.id == item.item_id)?.current_quantity || 0) ? "text-red-500 font-extrabold" : "text-gray-400"}`}>
+                                                                                                                                Stock: {(item.metadata?.type === "stocks" ? customizedProductsList : productsList).find(p => p.id == item.item_id)?.current_quantity || 0}
+                                                                                                                            </p>
+                                                                                                                        )}
+                                                                                                                    </div>
+                                                                                                                    <div className="col-span-2">
+                                                                                                                        <label className={commonLabelClass}>Rate</label>
+                                                                                                                        <input type="text" placeholder="0.00" value={item.rate ?? ""} onChange={(e) => handleItemChange(idx, "rate", e.target.value)} className={commonInputClass} />
+                                                                                                                    </div>
+                                                                                                                    <div className="col-span-2">
+                                                                                                                        <label className={commonLabelClass}>Tax (%)</label>
+                                                                                                                        <input type="number" readOnly placeholder="0" value={item.tax_percent ?? ""} className={`${commonInputClass} bg-gray-50/50 cursor-not-allowed [&::-webkit-inner-spin-button]:appearance-none`} />
+                                                                                                                    </div>
                                                                                                                 </div>
-                                                                                                                <div className="col-span-2">
-                                                                                                                    <label className={commonLabelClass}>Rate</label>
-                                                                                                                    <input type="text" placeholder="0.00" value={item.rate ?? ""} onChange={(e) => handleItemChange(idx, "rate", e.target.value)} className={commonInputClass} />
+                                                                                                            );
+                                                                                                        } else if (category === "machinery") {
+                                                                                                            return (
+                                                                                                                <div className="grid grid-cols-10 gap-4 min-w-[900px] md:min-w-full">
+                                                                                                                    <div className="col-span-6">
+                                                                                                                        <label className={commonLabelClass}>Description</label>
+                                                                                                                        <input type="text" placeholder="Details" value={item.metadata?.description ?? ""} onChange={(e) => handleMetadataChange(idx, "description", e.target.value)} className={commonInputClass} />
+                                                                                                                    </div>
+                                                                                                                    <div className="col-span-2">
+                                                                                                                        <label className={commonLabelClass}>Qty</label>
+                                                                                                                        <input type="text" placeholder="0" value={item.metadata?.qty ?? ""} onChange={(e) => handleMetadataChange(idx, "qty", e.target.value)} className={commonInputClass} />
+                                                                                                                    </div>
+                                                                                                                    <div className="col-span-2">
+                                                                                                                        <label className={commonLabelClass}>Rate</label>
+                                                                                                                        <input type="text" placeholder="0.00" value={item.rate ?? ""} onChange={(e) => handleItemChange(idx, "rate", e.target.value)} className={commonInputClass} />
+                                                                                                                    </div>
                                                                                                                 </div>
-                                                                                                                <div className="col-span-2">
-                                                                                                                    <label className={commonLabelClass}>Tax (%)</label>
-                                                                                                                    <input type="number" readOnly placeholder="0" value={item.tax_percent ?? ""} className={`${commonInputClass} bg-gray-50/50 cursor-not-allowed [&::-webkit-inner-spin-button]:appearance-none`} />
+                                                                                                            );
+                                                                                                        } else if (category === "minutes") {
+                                                                                                            return (
+                                                                                                                <div className="grid grid-cols-10 gap-4 min-w-[900px] md:min-w-full">
+                                                                                                                    <div className="col-span-6">
+                                                                                                                        <label className={commonLabelClass}>Description</label>
+                                                                                                                        <input type="text" placeholder="Details" value={item.metadata?.description ?? ""} onChange={(e) => handleMetadataChange(idx, "description", e.target.value)} className={commonInputClass} />
+                                                                                                                    </div>
+                                                                                                                    <div className="col-span-2">
+                                                                                                                        <label className={commonLabelClass}>Minutes</label>
+                                                                                                                        <input type="text" placeholder="0" value={item.metadata?.minutes ?? ""} onChange={(e) => handleMetadataChange(idx, "minutes", e.target.value)} className={commonInputClass} />
+                                                                                                                    </div>
+                                                                                                                    <div className="col-span-2">
+                                                                                                                        <label className={commonLabelClass}>Rate</label>
+                                                                                                                        <input type="text" placeholder="0.00" value={item.rate ?? ""} onChange={(e) => handleItemChange(idx, "rate", e.target.value)} className={commonInputClass} />
+                                                                                                                    </div>
                                                                                                                 </div>
-                                                                                                            </div>
-                                                                                                        );
-                                                                                                    } else if (category === "machinery") {
+                                                                                                            );
+                                                                                                        } else if (category === "mileage") {
+                                                                                                            return (
+                                                                                                                <div className="grid grid-cols-10 gap-4 min-w-[900px] md:min-w-full">
+                                                                                                                    <div className="col-span-6">
+                                                                                                                        <label className={commonLabelClass}>Description</label>
+                                                                                                                        <input type="text" placeholder="Details" value={item.metadata?.description ?? ""} onChange={(e) => handleMetadataChange(idx, "description", e.target.value)} className={commonInputClass} />
+                                                                                                                    </div>
+                                                                                                                    <div className="col-span-2">
+                                                                                                                        <label className={commonLabelClass}>Distance</label>
+                                                                                                                        <input type="text" placeholder="0" value={item.metadata?.distance ?? ""} onChange={(e) => handleMetadataChange(idx, "distance", e.target.value)} className={commonInputClass} />
+                                                                                                                    </div>
+                                                                                                                    <div className="col-span-2">
+                                                                                                                        <label className={commonLabelClass}>Rate</label>
+                                                                                                                        <input type="text" placeholder="0.00" value={item.rate ?? ""} onChange={(e) => handleItemChange(idx, "rate", e.target.value)} className={commonInputClass} />
+                                                                                                                    </div>
+                                                                                                                </div>
+                                                                                                            );
+                                                                                                        } else if (category === "measurement") {
+                                                                                                            return (
+                                                                                                                <div className="grid grid-cols-10 gap-4 min-w-[900px] md:min-w-full">
+                                                                                                                    <div className="col-span-3">
+                                                                                                                        <label className={commonLabelClass}>Type</label>
+                                                                                                                        <CustomSelect
+                                                                                                                            value={item.metadata?.materialType || item.metadata?.type || "energy"}
+                                                                                                                            onChange={(val) => handleMetadataChange(idx, "type", val)}
+                                                                                                                            options={[
+                                                                                                                                { value: "energy", label: "Energy" },
+                                                                                                                                { value: "fuel", label: "Fuel" },
+                                                                                                                                { value: "consumables", label: "Consumables" },
+                                                                                                                            ]}
+                                                                                                                            placeholder="Select Type"
+                                                                                                                            className="rounded-lg h-[40px] shadow-none"
+                                                                                                                        />
+                                                                                                                    </div>
+                                                                                                                    <div className="col-span-3">
+                                                                                                                        <label className={commonLabelClass}>Unit</label>
+                                                                                                                        <input type="text" placeholder="e.g. kWh/Liters" value={item.metadata?.unit ?? ""} onChange={(e) => handleMetadataChange(idx, "unit", e.target.value)} className={commonInputClass} />
+                                                                                                                    </div>
+                                                                                                                    <div className="col-span-2">
+                                                                                                                        <label className={commonLabelClass}>Qty</label>
+                                                                                                                        <input type="text" placeholder="0" value={item.metadata?.qty ?? ""} onChange={(e) => handleMetadataChange(idx, "qty", e.target.value)} className={commonInputClass} />
+                                                                                                                    </div>
+                                                                                                                    <div className="col-span-2">
+                                                                                                                        <label className={commonLabelClass}>Rate</label>
+                                                                                                                        <input type="text" placeholder="0.00" value={item.rate ?? ""} onChange={(e) => handleItemChange(idx, "rate", e.target.value)} className={commonInputClass} />
+                                                                                                                    </div>
+                                                                                                                </div>
+                                                                                                            );
+                                                                                                        }
                                                                                                         return (
-                                                                                                            <div className="grid grid-cols-10 gap-4 min-w-[900px] md:min-w-full">
+                                                                                                            <div className="grid grid-cols-12 gap-4 min-w-[900px] md:min-w-full">
                                                                                                                 <div className="col-span-6">
                                                                                                                     <label className={commonLabelClass}>Description</label>
-                                                                                                                    <input type="text" placeholder="Details" value={item.metadata?.description ?? ""} onChange={(e) => handleMetadataChange(idx, "description", e.target.value)} className={commonInputClass} />
+                                                                                                                    <input type="text" placeholder="Details" value={item.metadata?.description || item.metadata?.line_description || ""} onChange={(e) => handleMetadataChange(idx, "description", e.target.value)} className={commonInputClass} />
                                                                                                                 </div>
                                                                                                                 <div className="col-span-2">
                                                                                                                     <label className={commonLabelClass}>Qty</label>
@@ -3253,95 +3335,13 @@ const SalesQuoteForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = f
                                                                                                                     <label className={commonLabelClass}>Rate</label>
                                                                                                                     <input type="text" placeholder="0.00" value={item.rate ?? ""} onChange={(e) => handleItemChange(idx, "rate", e.target.value)} className={commonInputClass} />
                                                                                                                 </div>
-                                                                                                            </div>
-                                                                                                        );
-                                                                                                    } else if (category === "minutes") {
-                                                                                                        return (
-                                                                                                            <div className="grid grid-cols-10 gap-4 min-w-[900px] md:min-w-full">
-                                                                                                                <div className="col-span-6">
-                                                                                                                    <label className={commonLabelClass}>Description</label>
-                                                                                                                    <input type="text" placeholder="Details" value={item.metadata?.description ?? ""} onChange={(e) => handleMetadataChange(idx, "description", e.target.value)} className={commonInputClass} />
-                                                                                                                </div>
                                                                                                                 <div className="col-span-2">
-                                                                                                                    <label className={commonLabelClass}>Minutes</label>
-                                                                                                                    <input type="text" placeholder="0" value={item.metadata?.minutes ?? ""} onChange={(e) => handleMetadataChange(idx, "minutes", e.target.value)} className={commonInputClass} />
-                                                                                                                </div>
-                                                                                                                <div className="col-span-2">
-                                                                                                                    <label className={commonLabelClass}>Rate</label>
-                                                                                                                    <input type="text" placeholder="0.00" value={item.rate ?? ""} onChange={(e) => handleItemChange(idx, "rate", e.target.value)} className={commonInputClass} />
+                                                                                                                    <label className={commonLabelClass}>Amount</label>
+                                                                                                                    <input type="text" readOnly placeholder="0.00" value={item.amount ?? ""} className={`${commonInputClass} bg-gray-50/50 cursor-not-allowed`} />
                                                                                                                 </div>
                                                                                                             </div>
                                                                                                         );
-                                                                                                    } else if (category === "mileage") {
-                                                                                                        return (
-                                                                                                            <div className="grid grid-cols-10 gap-4 min-w-[900px] md:min-w-full">
-                                                                                                                <div className="col-span-6">
-                                                                                                                    <label className={commonLabelClass}>Description</label>
-                                                                                                                    <input type="text" placeholder="Details" value={item.metadata?.description ?? ""} onChange={(e) => handleMetadataChange(idx, "description", e.target.value)} className={commonInputClass} />
-                                                                                                                </div>
-                                                                                                                <div className="col-span-2">
-                                                                                                                    <label className={commonLabelClass}>Distance</label>
-                                                                                                                    <input type="text" placeholder="0" value={item.metadata?.distance ?? ""} onChange={(e) => handleMetadataChange(idx, "distance", e.target.value)} className={commonInputClass} />
-                                                                                                                </div>
-                                                                                                                <div className="col-span-2">
-                                                                                                                    <label className={commonLabelClass}>Rate</label>
-                                                                                                                    <input type="text" placeholder="0.00" value={item.rate ?? ""} onChange={(e) => handleItemChange(idx, "rate", e.target.value)} className={commonInputClass} />
-                                                                                                                </div>
-                                                                                                            </div>
-                                                                                                        );
-                                                                                                    } else if (category === "measurement") {
-                                                                                                        return (
-                                                                                                            <div className="grid grid-cols-10 gap-4 min-w-[900px] md:min-w-full">
-                                                                                                                <div className="col-span-3">
-                                                                                                                    <label className={commonLabelClass}>Type</label>
-                                                                                                                    <CustomSelect
-                                                                                                                        value={item.metadata?.materialType || item.metadata?.type || "energy"}
-                                                                                                                        onChange={(val) => handleMetadataChange(idx, "type", val)}
-                                                                                                                        options={[
-                                                                                                                            { value: "energy", label: "Energy" },
-                                                                                                                            { value: "fuel", label: "Fuel" },
-                                                                                                                            { value: "consumables", label: "Consumables" },
-                                                                                                                        ]}
-                                                                                                                        placeholder="Select Type"
-                                                                                                                        className="rounded-lg h-[40px] shadow-none"
-                                                                                                                    />
-                                                                                                                </div>
-                                                                                                                <div className="col-span-3">
-                                                                                                                    <label className={commonLabelClass}>Unit</label>
-                                                                                                                    <input type="text" placeholder="e.g. kWh/Liters" value={item.metadata?.unit ?? ""} onChange={(e) => handleMetadataChange(idx, "unit", e.target.value)} className={commonInputClass} />
-                                                                                                                </div>
-                                                                                                                <div className="col-span-2">
-                                                                                                                    <label className={commonLabelClass}>Qty</label>
-                                                                                                                    <input type="text" placeholder="0" value={item.metadata?.qty ?? ""} onChange={(e) => handleMetadataChange(idx, "qty", e.target.value)} className={commonInputClass} />
-                                                                                                                </div>
-                                                                                                                <div className="col-span-2">
-                                                                                                                    <label className={commonLabelClass}>Rate</label>
-                                                                                                                    <input type="text" placeholder="0.00" value={item.rate ?? ""} onChange={(e) => handleItemChange(idx, "rate", e.target.value)} className={commonInputClass} />
-                                                                                                                </div>
-                                                                                                            </div>
-                                                                                                        );
-                                                                                                    }
-                                                                                                    return (
-                                                                                                        <div className="grid grid-cols-12 gap-4 min-w-[900px] md:min-w-full">
-                                                                                                            <div className="col-span-6">
-                                                                                                                <label className={commonLabelClass}>Description</label>
-                                                                                                                <input type="text" placeholder="Details" value={item.metadata?.description || item.metadata?.line_description || ""} onChange={(e) => handleMetadataChange(idx, "description", e.target.value)} className={commonInputClass} />
-                                                                                                            </div>
-                                                                                                            <div className="col-span-2">
-                                                                                                                <label className={commonLabelClass}>Qty</label>
-                                                                                                                <input type="text" placeholder="0" value={item.metadata?.qty ?? ""} onChange={(e) => handleMetadataChange(idx, "qty", e.target.value)} className={commonInputClass} />
-                                                                                                            </div>
-                                                                                                            <div className="col-span-2">
-                                                                                                                <label className={commonLabelClass}>Rate</label>
-                                                                                                                <input type="text" placeholder="0.00" value={item.rate ?? ""} onChange={(e) => handleItemChange(idx, "rate", e.target.value)} className={commonInputClass} />
-                                                                                                            </div>
-                                                                                                            <div className="col-span-2">
-                                                                                                                <label className={commonLabelClass}>Amount</label>
-                                                                                                                <input type="text" readOnly placeholder="0.00" value={item.amount ?? ""} className={`${commonInputClass} bg-gray-50/50 cursor-not-allowed`} />
-                                                                                                            </div>
-                                                                                                        </div>
-                                                                                                    );
-                                                                                                })()}
+                                                                                                    })()}
                                                                                                 </div>
                                                                                                 <div className="min-w-[120px] text-right pt-6 shrink-0">
                                                                                                     <span className="text-[16px] font-bold text-gray-900">₹ {(parseFloat(item.amount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>

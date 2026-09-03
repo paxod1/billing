@@ -194,22 +194,76 @@ const partyController = {
     getPartyStatement: (req, res) => {
         try {
             const partyId = req.query.party_id || req.query.id;
+            const type = (req.query.type || 'SALES').toUpperCase(); // "PURCHASE" or "SALES"
+            const fromDate = req.query.from_date;
+            const toDate = req.query.to_date;
+
             if (!partyId) {
                 return res.status(400).json({ success: false, message: "Party ID required" });
             }
 
             const party = db.prepare("SELECT * FROM parties WHERE id = ?").get(partyId);
-            const invoices = db.prepare("SELECT * FROM sales_invoices WHERE customer_id = ?").all(partyId);
-            const payments = db.prepare("SELECT * FROM sales_payments WHERE customer_id = ?").all(partyId);
+            if (!party) {
+                return res.status(404).json({ success: false, message: "Party not found" });
+            }
+
+            let invoiceRows = [];
+            let paymentRows = [];
+            
+            if (type === 'PURCHASE') {
+                invoiceRows = db.prepare("SELECT * FROM purchase_invoices WHERE supplier_id = ? AND status != 'CANCELLED'").all(partyId);
+                paymentRows = db.prepare("SELECT * FROM purchase_payments WHERE supplier_id = ? AND status != 'CANCELLED'").all(partyId);
+            } else {
+                invoiceRows = db.prepare("SELECT * FROM sales_invoices WHERE customer_id = ? AND status != 'CANCELLED'").all(partyId);
+                paymentRows = db.prepare("SELECT * FROM sales_payments WHERE customer_id = ? AND status != 'CANCELLED'").all(partyId);
+            }
+
+            // Optional Date Filtering
+            if (fromDate) {
+                invoiceRows = invoiceRows.filter(i => (i.invoice_date || i.created_at || '').split('T')[0] >= fromDate);
+            }
+            if (toDate) {
+                invoiceRows = invoiceRows.filter(i => (i.invoice_date || i.created_at || '').split('T')[0] <= toDate);
+            }
+
+            const formattedInvoices = invoiceRows.map(inv => {
+                const invTotal = parseFloat(inv.total_amount || 0);
+                
+                // Find payments linked to this invoice
+                const invPayments = paymentRows.filter(p => p.invoice_id === inv.id || p.document_id === inv.id);
+                
+                const totalPaid = invPayments.reduce((acc, p) => acc + parseFloat(p.amount || 0), 0);
+                const dueAmount = Math.max(0, invTotal - totalPaid);
+                
+                return {
+                    id: inv.id,
+                    invoice_number: inv.invoice_number,
+                    invoice_name: inv.invoice_name || (type === 'PURCHASE' ? 'Purchase Invoice' : 'Sales Invoice'),
+                    invoice_date: inv.invoice_date,
+                    status: inv.status,
+                    invoice_total: invTotal,
+                    total_paid: totalPaid,
+                    due_amount: dueAmount,
+                    payments: invPayments.map(p => ({
+                        payment_number: p.payment_number || p.payment_id,
+                        payment_date: p.payment_date,
+                        payment_name: p.notes || p.payment_name || p.reference || 'Payment',
+                        payment_mode: p.payment_mode || 'Cash/Bank',
+                        amount: parseFloat(p.amount || 0)
+                    }))
+                };
+            });
+
+            // Sort by Date Descending
+            formattedInvoices.sort((a, b) => new Date(b.invoice_date || 0) - new Date(a.invoice_date || 0));
 
             return res.json({
                 success: true,
                 data: {
                     party,
-                    invoices,
-                    payments,
-                    total_invoiced: invoices.reduce((acc, i) => acc + (i.total_amount || 0), 0),
-                    total_paid: payments.reduce((acc, p) => acc + (p.amount || 0), 0)
+                    invoices: formattedInvoices,
+                    total_invoiced: formattedInvoices.reduce((acc, i) => acc + i.invoice_total, 0),
+                    total_paid: formattedInvoices.reduce((acc, i) => acc + i.total_paid, 0)
                 }
             });
         } catch (error) {

@@ -89,7 +89,7 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                     case "Materials":
                         return {
                             ...base,
-                            type: item.materialType.toLowerCase() === "customised_products" || item.materialType.toLowerCase() === "customized product" ? "customised_products" : "products",
+                            type: item.materialType.toLowerCase() === "customised_products" || item.materialType.toLowerCase() === "stocks" ? "customised_products" : "products",
                             name: item.name,
                             qty: parseFloat(item.qty) || 0,
                             cost: parseFloat(item.cost) || 0,
@@ -130,23 +130,23 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
             if (editData?.id) {
                 payload.id = editData.id;
             }
-            
+
             if (formData.id) {
                 payload.id = formData.id;
             }
 
             const response = await estimationService.saveEstimation(payload);
-            
+
             if (response.success === false) {
                 throw new Error(response.message || "Failed to save estimation");
             }
 
             setInitialSnapshot(JSON.stringify(formData));
-            dispatch(showToast({ 
-                message: editData ? "Estimation updated successfully!" : "Estimation created successfully!", 
-                type: "success" 
+            dispatch(showToast({
+                message: editData ? "Estimation updated successfully!" : "Estimation created successfully!",
+                type: "success"
             }));
-            
+
             onSave();
             handleClose();
         } catch (error) {
@@ -206,13 +206,13 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                         inventoryService.getCustomizedProducts(),
                         taxService.getTaxCodes()
                     ]);
-                    
+
                     let countryToFilter = null;
                     if (editData && editData.lines) {
                         const firstMaterialLine = editData.lines.find(line => line.category === "materials");
                         if (firstMaterialLine) {
                             const materialName = firstMaterialLine.metadata?.name || firstMaterialLine.name || firstMaterialLine.description;
-                            const isCustom = (firstMaterialLine.metadata?.type || firstMaterialLine.type || "").toLowerCase() === "customized product";
+                            const isCustom = (firstMaterialLine.metadata?.type || firstMaterialLine.type || "").toLowerCase() === "stocks";
                             const pool = isCustom ? (custRes.data || []) : (prodRes.data || []);
                             const matchedProduct = pool.find(p => p.name === materialName || p.id == firstMaterialLine.source_id);
                             if (matchedProduct && matchedProduct.tax) {
@@ -272,7 +272,7 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
             setLockedCountry(null);
             fetchInventory(null);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [formData.items, lockedCountry, isOpen]);
 
     // Initialize form when opening for create or edit
@@ -288,7 +288,7 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                     items: editData.lines ? editData.lines.map((line, idx) => {
                         const type = line.category?.charAt(0).toUpperCase() + line.category?.slice(1).toLowerCase();
                         const meta = line.metadata || {};
-                        
+
                         let item = {
                             id: line.id || `item_${idx}_${Date.now()}`,
                             type: type,
@@ -309,11 +309,11 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                             case "Materials":
                                 {
                                     const rawType = (meta.type || line.type || "").toLowerCase();
-                                    item.materialType = (rawType === "customised_products" || rawType === "customized product" || rawType === "customised" || rawType === "customized") ? "customized product" : "product";
+                                    item.materialType = (rawType === "customised_products" || rawType === "stocks" || rawType === "customised" || rawType === "customized") ? "stocks" : "product";
                                     item.name = meta.name || line.name || line.description || "";
                                     item.qty = meta.qty || line.qty || line.quantity || 0;
                                     item.cost = meta.cost || line.cost || line.rate || 0;
-                                    
+
                                     let resolvedTaxPercent = 0;
                                     let resolvedTaxId = null;
 
@@ -554,7 +554,7 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                     <div className="col-span-3">
                         <label className={commonLabelClass}>Type</label>
                         <CustomSelect
-                            value={item.materialType} 
+                            value={item.materialType}
                             onChange={(val) => {
                                 handleUpdateItem(item.id, "materialType", val);
                                 handleUpdateItem(item.id, "name", "");
@@ -565,7 +565,7 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                             }}
                             options={[
                                 { value: "product", label: "Product" },
-                                { value: "customized product", label: "Customized Product" },
+                                { value: "stocks", label: "stocks" },
                             ]}
                             placeholder="Select Type"
                             className="rounded-lg h-[40px] shadow-none"
@@ -585,7 +585,7 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                                         const productionCostVal = parseFloat(selected.Production_cost || selected.production_cost || 0);
                                         const unitVal = selected.unit || "pcs";
                                         const materialIdVal = selected.id;
-                                        
+
                                         const updates = {
                                             name: val,
                                             cost: costVal,
@@ -597,7 +597,7 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                                             taxPercentage: 0,
                                             tax_id: null
                                         };
- 
+
                                         const taxVal = selected.tax;
                                         if (taxVal) {
                                             const taxId = (typeof taxVal === 'object' ? taxVal?.id : taxVal);
@@ -606,7 +606,7 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                                             if (typeof taxVal === 'object' && taxVal?.tax_rates) {
                                                 const totalTaxRate = Object.values(taxVal.tax_rates).reduce((sum, rate) => sum + parseFloat(rate), 0);
                                                 updates.taxPercentage = totalTaxRate;
-                                                
+
                                                 if (!lockedCountry && taxVal.country) {
                                                     setLockedCountry(taxVal.country);
                                                     fetchInventory(taxVal.country);
@@ -625,7 +625,7 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                                                         const totalTaxRate = Object.values(taxRates).reduce((sum, rate) => sum + parseFloat(rate), 0);
                                                         updates.taxPercentage = totalTaxRate;
                                                         updates.tax_id = taxId;
-                                                        
+
                                                         if (!lockedCountry && taxData?.country) {
                                                             setLockedCountry(taxData.country);
                                                             fetchInventory(taxData.country);
@@ -645,8 +645,8 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                                 }}
                                 options={pool.map(p => {
                                     const stockVal = parseFloat(p.current_quantity) || 0;
-                                    return { 
-                                        value: p.name, 
+                                    return {
+                                        value: p.name,
                                         label: p.name,
                                         isDisabled: stockVal <= 0
                                     };
@@ -661,10 +661,10 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                     </div>
                     <div className="col-span-2">
                         <label className={commonLabelClass}>Qty</label>
-                        <input 
-                            type="number" 
-                            placeholder="0" 
-                            value={item.qty} 
+                        <input
+                            type="number"
+                            placeholder="0"
+                            value={item.qty}
                             onChange={(e) => {
                                 let val = parseFloat(e.target.value);
                                 if (isNaN(val)) {
@@ -678,8 +678,8 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                                 }
                             }}
                             max={stock}
-                            className={commonInputClass} 
-                            disabled={viewOnly} 
+                            className={commonInputClass}
+                            disabled={viewOnly}
                         />
                         {item.name && (
                             <span className="text-[10px] font-bold text-[#10B981] mt-1.5 block tracking-tight">
@@ -694,11 +694,11 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                                 <span className="text-[9px] font-bold text-red-500 animate-pulse bg-red-50 px-1 rounded">Below Cost!</span>
                             )}
                         </div>
-                        <input 
-                            type="number" 
-                            placeholder="0.00" 
-                            value={item.cost} 
-                            onChange={(e) => handleUpdateItem(item.id, "cost", e.target.value)} 
+                        <input
+                            type="number"
+                            placeholder="0.00"
+                            value={item.cost}
+                            onChange={(e) => handleUpdateItem(item.id, "cost", e.target.value)}
                             className={`${commonInputClass} ${hasRateWarning ? 'border-red-300 focus:ring-red-400 focus:border-red-400 text-red-600 bg-red-50/10' : ''}`}
                             disabled={viewOnly}
                         />
@@ -710,10 +710,10 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                     </div>
                     <div className="col-span-2">
                         <label className={commonLabelClass}>Tax (%)</label>
-                        <input 
-                            type="number" 
-                            placeholder="0" 
-                            value={item.taxPercentage} 
+                        <input
+                            type="number"
+                            placeholder="0"
+                            value={item.taxPercentage}
                             onChange={(e) => {
                                 const rateVal = e.target.value;
                                 const matchedTax = findTaxCodeByRate(rateVal, taxes);
@@ -722,8 +722,8 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                                     tax_id: matchedTax ? matchedTax.id : null
                                 });
                             }}
-                            className={commonInputClass} 
-                            disabled={viewOnly} 
+                            className={commonInputClass}
+                            disabled={viewOnly}
                         />
                     </div>
                 </div>
@@ -1070,8 +1070,8 @@ const SalesEstimationForm = ({ isOpen, onClose, onSave, editData = null, viewOnl
                     </div>
                 </div>
                 <div className="p-6 md:px-12 md:py-6 border-t border-gray-200 flex flex-wrap justify-end items-center bg-gray-50/10 rounded-b-lg gap-4 no-print">
-                    <button 
-                        onClick={handleClose} 
+                    <button
+                        onClick={handleClose}
                         className="px-6 py-2.5 text-[14px] font-semibold text-gray-500 hover:bg-gray-100 rounded-lg transition-all cursor-pointer"
                         disabled={isSaving}
                     >

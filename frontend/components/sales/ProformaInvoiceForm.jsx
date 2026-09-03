@@ -176,7 +176,7 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
     const handleAddEstimationItem = (type) => {
         const newItem = {
             item_id: `est_${Date.now()}`,
-            type: "Customized Product",
+            type: "stocks",
             source_type: "estimation",
             tax_id: "",
             tax_percent: 0,
@@ -206,7 +206,7 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
         const today = new Date().toISOString().split('T')[0];
         const newItem = {
             item_id: `time_${Date.now()}`,
-            type: "Customized Product",
+            type: "stocks",
             source_type: "time",
             tax_id: "",
             tax_percent: 0,
@@ -233,7 +233,7 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
         const today = new Date().toISOString().split('T')[0];
         const newItem = {
             item_id: `mileage_${Date.now()}`,
-            type: "Customized Product",
+            type: "stocks",
             source_type: "mileage",
             tax_id: "",
             tax_percent: 0,
@@ -612,7 +612,7 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
                 const totalAmount = parseFloat(item.rate) || 0;
                 const originalTotal = parseFloat(item.metadata?.parent_total_amount) || totalAmount || 1;
                 const originalTax = parseFloat(item.metadata?.parent_tax) || 0;
-                
+
                 const taxAmount = originalTotal > 0 ? (totalAmount * originalTax) / originalTotal : 0;
                 const itemSub = totalAmount - taxAmount;
 
@@ -776,9 +776,9 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
             if (sourceType === "time") itemType = "Time";
             else if (sourceType === "mileage") itemType = "Mileage";
             else if (sourceType === "service") itemType = "Service";
-            else if (sourceType === "customized" || sourceType === "customized product") itemType = "Customized Product";
-            else if (isSourceObject && mappedItemId.item_type === "CUSTOMISED PRODUCTS") itemType = "Customized Product";
-            else if (customizedProductsList.some(cp => cp.id == primitiveItemId)) itemType = "Customized Product";
+            else if (sourceType === "customized" || sourceType === "stocks") itemType = "stocks";
+            else if (isSourceObject && mappedItemId.item_type === "CUSTOMISED PRODUCTS") itemType = "stocks";
+            else if (customizedProductsList.some(cp => cp.id == primitiveItemId)) itemType = "stocks";
 
             const metadata = { ...(item.metadata || {}) };
             if (sourceType === "service" && !metadata.description) {
@@ -861,7 +861,7 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
             const totalAmount = parseFloat(firstItem.rate) || 0;
             const originalTotal = parseFloat(firstItem.metadata?.parent_total_amount) || totalAmount || 1;
             const originalTax = parseFloat(firstItem.metadata?.parent_tax) || 0;
-            
+
             const taxAmount = originalTotal > 0 ? (totalAmount * originalTax) / originalTotal : 0;
             const subtotal = totalAmount - taxAmount;
             const rate = subtotal;
@@ -904,7 +904,7 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
             const taxId = item.tax_id ? Number(item.tax_id) : null;
             let sourceType = item.source_type || "item";
 
-            if (item.type === "Product" || item.type === "Customized Product") {
+            if (item.type === "Product" || item.type === "stocks") {
                 sourceType = "item";
             }
 
@@ -1112,7 +1112,7 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
         }
 
         if (field === "item_id") {
-            if (newItems[index].type === "Product" || newItems[index].type === "Customized Product") {
+            if (newItems[index].type === "Product" || newItems[index].type === "stocks") {
                 const listToSearch = overrideList || (newItems[index].type === "Product" ? productsList : customizedProductsList);
                 const selectedItem = listToSearch.find(i => i.id == value);
                 if (selectedItem) {
@@ -1354,7 +1354,7 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
             };
 
             const response = await inventoryService.saveCustomizedProduct(payload);
-            dispatch(showToast({ message: "Customized product created successfully", type: "success" }));
+            dispatch(showToast({ message: "stocks created successfully", type: "success" }));
 
             const createdId = findIdInObject(response);
             if (apiPayload.enableRestock && createdId) {
@@ -1371,7 +1371,7 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
                 };
 
                 try {
-                    await processRestock(createdProduct, restockData, "Customized Products");
+                    await processRestock(createdProduct, restockData, "Stocks");
                     dispatch(showToast({ message: "Stock restocked and purchase invoice & payment recorded successfully", type: "success" }));
                 } catch (err) {
                     console.error("Restock error:", err);
@@ -1389,8 +1389,8 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
 
             setIsSpecialItemFormOpen(false);
         } catch (error) {
-            console.error("Error creating customized product from sales form:", error);
-            dispatch(showToast({ message: "Failed to create customized product", type: "error" }));
+            console.error("Error creating stocks from sales form:", error);
+            dispatch(showToast({ message: "Failed to create stocks", type: "error" }));
         } finally {
             setIsSavingPopup(false);
         }
@@ -1420,10 +1420,10 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
         }
     };
 
-    // Handler for estimation item selection (Product/Customized Product)
+    // Handler for estimation item selection (Product/stocks)
     const handleEstimationItemSelect = async (index, itemId) => {
         const itemType = formData.items[index].metadata?.type || "product";
-        const list = itemType === "customized product" ? customizedProductsList : productsList;
+        const list = itemType === "stocks" ? customizedProductsList : productsList;
         const selected = list.find(i => i.id == itemId);
 
         if (selected) {
@@ -1623,16 +1623,16 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
 
             // --- STOCK VALIDATION ---
             const overstockItem = formData.items.find(item => {
-                const isItemType = (item.type === "Product" || item.type === "Customized Product") ||
+                const isItemType = (item.type === "Product" || item.type === "stocks") ||
                     (item.source_type === "product" || item.source_type === "customized");
                 const isEstimationMaterial = item.source_type === "estimation" &&
-                    (item.metadata?.type === "product" || item.metadata?.type === "customized product") &&
+                    (item.metadata?.type === "product" || item.metadata?.type === "stocks") &&
                     item.item_id;
 
                 if (!isItemType && !isEstimationMaterial) return false;
 
                 const qty = isEstimationMaterial ? (parseFloat(item.metadata?.qty) || 0) : (parseFloat(item.quantity) || 0);
-                const list = (item.type === "Customized Product" || item.metadata?.type === "customized product" || item.source_type === "customized")
+                const list = (item.type === "stocks" || item.metadata?.type === "stocks" || item.source_type === "customized")
                     ? customizedProductsList
                     : productsList;
                 const dbProduct = list.find(i => i.id == item.item_id);
@@ -1799,15 +1799,15 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
         setIsAddItemMenuOpen(false);
         setFormData(prev => {
             const maxSortKey = prev.items.reduce((max, item) => Math.max(max, item.sort_key || 0), 0);
-            
+
             let newItem = {
                 type: type,
                 source_type: type === "Product" ? "product" :
-                             type === "Customized Product" ? "customized" :
-                             type === "Service" ? "service" :
-                             type === "Time" ? "time" :
-                             type === "Mileage" ? "mileage" :
-                             type === "Estimation" ? "estimation" : "product",
+                    type === "stocks" ? "customized" :
+                        type === "Service" ? "service" :
+                            type === "Time" ? "time" :
+                                type === "Mileage" ? "mileage" :
+                                    type === "Estimation" ? "estimation" : "product",
                 item_id: "",
                 tax_id: "",
                 quantity: 1,
@@ -1956,7 +1956,7 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
             );
         }
 
-        if (type === "Customized Product" || type === "customized") {
+        if (type === "stocks" || type === "customized") {
             const selectedProduct = customizedProductsList.find(i => i.id == item.item_id);
             const dbItems = Array.isArray(editData?.proforma_item) ? editData.proforma_item : [];
             const originalDbItem = dbItems.find(dbItem => dbItem.source_id == item.item_id);
@@ -1981,12 +1981,12 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
                                 }
                             }}
                             options={[
-                                { value: "new_customized_product", label: "+ Add New Customized Product" },
+                                { value: "new_customized_product", label: "+ Add New stocks" },
                                 ...customizedProductsList
                                     .filter(i => !formData.items.some((it, fIdx) => fIdx !== idx && it.type === item.type && it.item_id == i.id))
                                     .map(i => ({ value: i.id, label: i.name }))
                             ]}
-                            placeholder="Select Customized Product"
+                            placeholder="Select stocks"
                             className="rounded-xl h-[38px] shadow-none"
                         />
                     </div>
@@ -2352,7 +2352,7 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
                         </button>
                         <button
                             type="button"
-                            onClick={() => handleAddNewItemOfType("Customized Product")}
+                            onClick={() => handleAddNewItemOfType("stocks")}
                             className="flex flex-col items-center justify-center p-5 rounded-xl border border-gray-200 bg-white text-gray-700 font-bold transition-all text-xs gap-3 shadow-sm hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50/10"
                         >
                             <FiSettings size={22} className="opacity-80 text-indigo-500" />
@@ -2585,7 +2585,7 @@ const ProformaInvoiceForm = ({ isOpen, onClose, onSave, editData, isViewOnly }) 
                                                     <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 py-2 max-h-72 overflow-y-auto ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200">
                                                         {[
                                                             { id: "Product", label: "Product", icon: FiBox },
-                                                            { id: "Customized Product", label: "Customized Product", icon: FiSettings },
+                                                            { id: "stocks", label: "stocks", icon: FiSettings },
                                                             { id: "Service", label: "Service", icon: FiTool },
                                                             { id: "Time", label: "Time", icon: FiClock },
                                                             { id: "Mileage", label: "Mileage", icon: FiMapPin },

@@ -206,9 +206,21 @@ export default function GeneralLedgerPage() {
                                 </div>
                             )}
                             {ledgerEntries.length > 0 ? (
-                                <div className="overflow-x-auto">
-                                    <div className="min-w-[1000px] lg:min-w-0">
-                                        <table className="w-full text-left border-collapse">
+                                <div className="space-y-8">
+                                    {Object.entries(
+                                        ledgerEntries.reduce((acc, entry) => {
+                                            const accName = entry.account_name || (typeof entry.account === 'object' ? entry.account?.name : entry.account) || "Unknown Account";
+                                            if (!acc[accName]) acc[accName] = [];
+                                            acc[accName].push(entry);
+                                            return acc;
+                                        }, {})
+                                    ).map(([accountName, entries], groupIndex) => (
+                                        <div key={groupIndex} className="overflow-x-auto bg-white rounded-lg border border-gray-200">
+                                            <div className="bg-gray-100 px-6 py-3 border-b border-gray-200">
+                                                <h3 className="text-[16px] font-bold text-gray-800">{accountName} Ledger</h3>
+                                            </div>
+                                            <div className="min-w-[1000px] lg:min-w-0">
+                                                <table className="w-full text-left border-collapse">
                                             <thead className="bg-gray-50 border-b border-gray-200">
                                                 <tr>
                                                     <th className="px-4 lg:px-6 py-4 text-[14px] lg:text-[15px] font-semibold text-gray-700 whitespace-nowrap">#</th>
@@ -223,13 +235,13 @@ export default function GeneralLedgerPage() {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-100">
-                                                {ledgerEntries.map((entry, index) => (
+                                                {entries.map((entry, index) => (
                                                     <tr key={index} className="hover:bg-gray-50 transition-colors">
                                                         <td className="px-4 lg:px-6 py-5 text-[14px] lg:text-[15px] text-gray-700 whitespace-nowrap">
-                                                            {(currentPage - 1) * pageSize + index + 1}
+                                                            {index + 1}
                                                         </td>
                                                         <td className="px-4 lg:px-6 py-5 text-[14px] lg:text-[15px] text-gray-900 whitespace-nowrap font-medium">
-                                                            {entry.account_name || (typeof entry.account === 'object' ? entry.account?.name : entry.account) || "—"}
+                                                            {accountName}
                                                         </td>
                                                         <td className="px-4 lg:px-6 py-5 text-[14px] lg:text-[15px] text-gray-500 whitespace-nowrap">
                                                             {entry.date ? new Date(entry.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : "—"}
@@ -254,8 +266,10 @@ export default function GeneralLedgerPage() {
                                                     </tr>
                                                 ))}
                                             </tbody>
-                                        </table>
-                                    </div>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             ) : (
                                 <EmptyState

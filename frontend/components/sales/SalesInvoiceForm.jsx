@@ -202,7 +202,7 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
     const handleAddEstimationItem = (type) => {
         const newItem = {
             item_id: `est_${Date.now()}`,
-            type: "Customized Product",
+            type: "stocks",
             source_type: "estimation",
             tax_id: "",
             tax_percent: 0,
@@ -233,7 +233,7 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
         const today = new Date().toISOString().split('T')[0];
         const newItem = {
             item_id: `time_${Date.now()}`,
-            type: "Customized Product",
+            type: "stocks",
             source_type: "time",
             tax_id: "",
             tax_percent: 0,
@@ -260,7 +260,7 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
         const today = new Date().toISOString().split('T')[0];
         const newItem = {
             item_id: `mileage_${Date.now()}`,
-            type: "Customized Product",
+            type: "stocks",
             source_type: "mileage",
             tax_id: "",
             tax_percent: 0,
@@ -863,7 +863,7 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                 listToSearch = overrideList;
             } else {
                 if (itemType === "Product") listToSearch = productsList;
-                else if (itemType === "Customized Product") listToSearch = customizedProductsList;
+                else if (itemType === "stocks") listToSearch = customizedProductsList;
                 else if (itemType === "Time") listToSearch = timeList;
                 else if (itemType === "Mileage") listToSearch = mileageList;
                 else if (itemType === "Estimation") listToSearch = estimationList;
@@ -872,7 +872,7 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
             const selectedItem = listToSearch.find(i => i.id == value);
             if (selectedItem) {
                 newItems[index].rate = parseFloat(selectedItem.rate || 0);
-                if (itemType === "Product" || itemType === "Customized Product") {
+                if (itemType === "Product" || itemType === "stocks") {
                     newItems[index].production_cost = parseFloat(selectedItem.Production_cost || selectedItem.cost_price || 0);
                     newItems[index].description = selectedItem.name || selectedItem.description || "N/A";
                 }
@@ -1115,7 +1115,7 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
             };
 
             const response = await inventoryService.saveCustomizedProduct(payload);
-            dispatch(showToast({ message: "Customized product created successfully", type: "success" }));
+            dispatch(showToast({ message: "stocks created successfully", type: "success" }));
 
             const createdId = findIdInObject(response);
             if (apiPayload.enableRestock && createdId) {
@@ -1132,7 +1132,7 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                 };
 
                 try {
-                    await processRestock(createdProduct, restockData, "Customized Products");
+                    await processRestock(createdProduct, restockData, "Stocks");
                     dispatch(showToast({ message: "Stock restocked and purchase invoice & payment recorded successfully", type: "success" }));
                 } catch (err) {
                     console.error("Restock error:", err);
@@ -1150,8 +1150,8 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
 
             setIsSpecialItemFormOpen(false);
         } catch (error) {
-            console.error("Error creating customized product from sales form:", error);
-            dispatch(showToast({ message: "Failed to create customized product", type: "error" }));
+            console.error("Error creating stocks from sales form:", error);
+            dispatch(showToast({ message: "Failed to create stocks", type: "error" }));
         } finally {
             setIsSavingPopup(false);
         }
@@ -1183,7 +1183,7 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
 
     const handleEstimationItemSelect = async (index, itemId) => {
         const itemType = formData.items[index].metadata?.type || "product";
-        const list = itemType === "customized product" ? customizedProductsList : productsList;
+        const list = itemType === "stocks" ? customizedProductsList : productsList;
         const selected = list.find(i => i.id == itemId);
 
         if (selected) {
@@ -1245,15 +1245,15 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
         setIsAddItemMenuOpen(false);
         setFormData(prev => {
             const maxSortKey = prev.items.reduce((max, item) => Math.max(max, item.sort_key || 0), 0);
-            
+
             let newItem = {
                 type: type,
                 source_type: type === "Product" ? "product" :
-                             type === "Customized Product" ? "customized" :
-                             type === "Service" ? "service" :
-                             type === "Time" ? "time" :
-                             type === "Mileage" ? "mileage" :
-                             type === "Estimation" ? "estimation" : "product",
+                    type === "stocks" ? "customized" :
+                        type === "Service" ? "service" :
+                            type === "Time" ? "time" :
+                                type === "Mileage" ? "mileage" :
+                                    type === "Estimation" ? "estimation" : "product",
                 item_id: "",
                 tax_id: "",
                 quantity: 1,
@@ -1355,8 +1355,8 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                 } else if (cat === "materials") {
                     let qty = field === "qty" ? parseFloat(value || 0) : (updatedMetadata.qty || 0);
 
-                    if (field === "qty" && item.item_id && (updatedMetadata.type === "product" || updatedMetadata.type === "customized product")) {
-                        const list = updatedMetadata.type === "customized product" ? customizedProductsList : productsList;
+                    if (field === "qty" && item.item_id && (updatedMetadata.type === "product" || updatedMetadata.type === "stocks")) {
+                        const list = updatedMetadata.type === "stocks" ? customizedProductsList : productsList;
                         const product = list.find(p => p.id == item.item_id);
                         const stock = product?.current_quantity || 0;
                         if (qty > stock) {
@@ -1447,8 +1447,8 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                                     .filter(i => !formData.items.some((it, fIdx) => fIdx !== idx && it.type === item.type && it.item_id == i.id))
                                     .map(i => {
                                         const stockVal = parseFloat(i.current_quantity) || 0;
-                                        return { 
-                                            value: i.id, 
+                                        return {
+                                            value: i.id,
                                             label: i.name,
                                             isDisabled: stockVal <= 0
                                         };
@@ -1517,7 +1517,7 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
             );
         }
 
-        if (type === "Customized Product" || type === "customized") {
+        if (type === "stocks" || type === "customized") {
             const selectedProduct = customizedProductsList.find(i => i.id == item.item_id);
             const dbItems = Array.isArray(editData?.sales_item) ? editData.sales_item : [];
             const originalDbItem = dbItems.find(dbItem => dbItem.source_id == item.item_id || dbItem.item_id == item.item_id);
@@ -1542,19 +1542,19 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                                 }
                             }}
                             options={[
-                                { value: "new_customized_product", label: "+ Add New Customized Product" },
+                                { value: "new_customized_product", label: "+ Add New stocks" },
                                 ...customizedProductsList
                                     .filter(i => !formData.items.some((it, fIdx) => fIdx !== idx && it.type === item.type && it.item_id == i.id))
                                     .map(i => {
                                         const stockVal = parseFloat(i.current_quantity) || 0;
-                                        return { 
-                                            value: i.id, 
+                                        return {
+                                            value: i.id,
                                             label: i.name,
                                             isDisabled: stockVal <= 0
                                         };
                                     })
                             ]}
-                            placeholder="Select Customized Product"
+                            placeholder="Select stocks"
                             className="rounded-xl h-[38px] shadow-none"
                         />
                     </div>
@@ -1912,7 +1912,7 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 w-full max-w-4xl">
                         {[
                             { id: "Product", label: "Product", icon: FiBox, color: "hover:border-[#FFCA00] hover:text-[#FFCA00] hover:bg-amber-50/10" },
-                            { id: "Customized Product", label: "Customized", icon: FiSettings, color: "hover:border-purple-500 hover:text-purple-600 hover:bg-purple-50/10" },
+                            { id: "stocks", label: "Customized", icon: FiSettings, color: "hover:border-purple-500 hover:text-purple-600 hover:bg-purple-50/10" },
                             { id: "Service", label: "Service", icon: FiTool, color: "hover:border-green-500 hover:text-green-600 hover:bg-green-50/10" },
                             { id: "Time", label: "Time Entry", icon: FiClock, color: "hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50/10" },
                             { id: "Mileage", label: "Mileage Entry", icon: FiNavigation, color: "hover:border-rose-500 hover:text-rose-600 hover:bg-rose-50/10" },
@@ -2041,7 +2041,7 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                         if (lineCat === "materials") {
                             const lineStock = line.metadata?.stock !== undefined ? parseFloat(line.metadata.stock) : undefined;
                             const lineQty = parseFloat(line.quantity || line.metadata?.qty || 0);
-                            
+
                             if (lineStock !== undefined && lineQty > lineStock) {
                                 estimationStockError = {
                                     name: line.metadata?.name || line.description || "dependent product",
@@ -2055,8 +2055,8 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                     }
                 }
 
-                if ((item.source_type && item.source_type !== "item") || (item.type !== "Product" && item.type !== "Customized Product")) return false;
-                const list = item.type === "Customized Product" ? customizedProductsList : productsList;
+                if ((item.source_type && item.source_type !== "item") || (item.type !== "Product" && item.type !== "stocks")) return false;
+                const list = item.type === "stocks" ? customizedProductsList : productsList;
                 const dbProduct = list.find(i => i.id == item.item_id);
                 const dbStock = dbProduct ? (parseFloat(dbProduct.current_quantity) || 0) : 0;
 
@@ -2125,7 +2125,7 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
             }
 
             dispatch(showToast({ message: `Sales Invoice ${editData ? "updated" : "created"} successfully!`, type: "success" }));
-            
+
             const newId = response?.data?.data?.id || response?.data?.id || response?.data?.[0]?.id || response?.id || editData?.id;
 
             if (isSendToClient && newId) {
@@ -2362,7 +2362,7 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                                                     <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 py-2 ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-200">
                                                         {[
                                                             { id: "Product", label: "Product", icon: FiBox },
-                                                            { id: "Customized Product", label: "Customized Product", icon: FiSettings },
+                                                            { id: "stocks", label: "stocks", icon: FiSettings },
                                                             { id: "Service", label: "Service", icon: FiTool },
                                                             { id: "Time", label: "Time Entry", icon: FiClock },
                                                             { id: "Mileage", label: "Mileage Entry", icon: FiNavigation },
@@ -2389,51 +2389,51 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                                     {renderItemsList()}
                                 </div>
 
-                                    <div className="mt-4 flex flex-col items-end gap-2 text-sm">
-                                        <div className="flex justify-between w-full md:w-80">
-                                            <span className="text-gray-600">Subtotal:</span>
-                                            <span className="font-semibold text-gray-900 whitespace-nowrap">
-                                                ₹ {totals.subtotal.toLocaleString()}.00
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between w-full md:w-80">
-                                            <span className="text-gray-600">Tax:</span>
-                                            <span className="font-semibold text-gray-900 whitespace-nowrap">
-                                                ₹ {totals.totalTax.toFixed(2)}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between w-full md:w-80 pt-2 border-t-2 border-gray-200 text-base">
-                                            <span className="font-semibold text-gray-900">Total (INR):</span>
-                                            <span className="font-bold text-teal-600 whitespace-nowrap">
-                                                ₹ {totals.total.toFixed(2)}
-                                            </span>
-                                        </div>
+                                <div className="mt-4 flex flex-col items-end gap-2 text-sm">
+                                    <div className="flex justify-between w-full md:w-80">
+                                        <span className="text-gray-600">Subtotal:</span>
+                                        <span className="font-semibold text-gray-900 whitespace-nowrap">
+                                            ₹ {totals.subtotal.toLocaleString()}.00
+                                        </span>
                                     </div>
+                                    <div className="flex justify-between w-full md:w-80">
+                                        <span className="text-gray-600">Tax:</span>
+                                        <span className="font-semibold text-gray-900 whitespace-nowrap">
+                                            ₹ {totals.totalTax.toFixed(2)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between w-full md:w-80 pt-2 border-t-2 border-gray-200 text-base">
+                                        <span className="font-semibold text-gray-900">Total (INR):</span>
+                                        <span className="font-bold text-teal-600 whitespace-nowrap">
+                                            ₹ {totals.total.toFixed(2)}
+                                        </span>
+                                    </div>
+                                </div>
 
-                                    {/* References Section */}
-                                    <div className="mb-8 mt-12 md:mt-0">
-                                        <h3 className="text-sm font-bold text-gray-900 mb-4">References</h3>
-                                        <div className="space-y-6">
-                                            <div>
-                                                <label className="text-[13px] font-bold text-gray-900 mb-2 block">Notes</label>
-                                                <textarea
-                                                    value={formData.notes}
-                                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                                    className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm h-28 placeholder:text-gray-300 focus:ring-0 focus:border-gray-200"
-                                                    placeholder="Add invoice terms or notes"
-                                                ></textarea>
-                                            </div>
-                                            <div>
-                                                <label className="text-[13px] font-bold text-gray-900 mb-2 block">Attachment</label>
-                                                <AttachmentUploader
-                                                    context="sales-invoice"
-                                                    existingUrl={formData.attachment}
-                                                    onUploaded={(url) => handleInputChange("attachment", url)}
-                                                    disabled={false}
-                                                />
-                                            </div>
+                                {/* References Section */}
+                                <div className="mb-8 mt-12 md:mt-0">
+                                    <h3 className="text-sm font-bold text-gray-900 mb-4">References</h3>
+                                    <div className="space-y-6">
+                                        <div>
+                                            <label className="text-[13px] font-bold text-gray-900 mb-2 block">Notes</label>
+                                            <textarea
+                                                value={formData.notes}
+                                                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                                className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm h-28 placeholder:text-gray-300 focus:ring-0 focus:border-gray-200"
+                                                placeholder="Add invoice terms or notes"
+                                            ></textarea>
+                                        </div>
+                                        <div>
+                                            <label className="text-[13px] font-bold text-gray-900 mb-2 block">Attachment</label>
+                                            <AttachmentUploader
+                                                context="sales-invoice"
+                                                existingUrl={formData.attachment}
+                                                onUploaded={(url) => handleInputChange("attachment", url)}
+                                                disabled={false}
+                                            />
                                         </div>
                                     </div>
+                                </div>
                             </div>
 
                             <div className="flex flex-wrap items-center justify-end gap-3 mt-8 pt-6 border-t font-poppins">
@@ -2787,10 +2787,10 @@ const SalesInvoiceForm = ({ isOpen, onClose, onSave, editData = null, mode = "ed
                                                     <div className="flex-1">
                                                         <span className="text-gray-900 font-medium">{idx + 1}. {
                                                             item.source_type === "time" ? (item.metadata?.entry_name || item.description || "Time Entry") :
-                                                            item.source_type === "mileage" ? (item.metadata?.line_name || item.description || "Mileage") :
-                                                            item.source_type === "estimation" ? (item.metadata?.line_name || item.description || "Estimation") :
-                                                            (item.source_type === "service" || item.type === "Service") ? (item.description || item.metadata?.service_name || "Service") :
-                                                            ((item.type === "Product" ? productsList : customizedProductsList).find(i => i.id == item.item_id)?.name || item.description || "N/A")
+                                                                item.source_type === "mileage" ? (item.metadata?.line_name || item.description || "Mileage") :
+                                                                    item.source_type === "estimation" ? (item.metadata?.line_name || item.description || "Estimation") :
+                                                                        (item.source_type === "service" || item.type === "Service") ? (item.description || item.metadata?.service_name || "Service") :
+                                                                            ((item.type === "Product" ? productsList : customizedProductsList).find(i => i.id == item.item_id)?.name || item.description || "N/A")
                                                         }</span>
                                                         <p className="text-xs text-gray-400">{item.type} x {item.quantity}</p>
                                                     </div>

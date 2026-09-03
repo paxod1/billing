@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const inventoryController = require('../controllers/inventoryController');
 
-// Customized Products
+// Stocks
 router.get('/customized-products', inventoryController.getCustomizedProducts);
 router.post('/customized-products/query', inventoryController.getCustomizedProducts);
 router.post('/customized-products', inventoryController.saveCustomizedProduct);

@@ -38,6 +38,7 @@ const findIdInObject = (obj) => {
 };
 import { FiFilter, FiDownload, FiPlus, FiMoreVertical, FiLoader, FiX } from "react-icons/fi";
 import RestockModal from "@/components/sales/RestockModal";
+import SplitStockModal from "@/components/sales/SplitStockModal";
 import { processRestock } from "@/utils/restockHelper";
 
 export default function InventoryManager({ type }) {
@@ -54,7 +55,7 @@ export default function InventoryManager({ type }) {
     const [totalProducts, setTotalProducts] = useState(0);
     const [specialItems, setSpecialItems] = useState([]);
     const [totalSpecialItems, setTotalSpecialItems] = useState(0);
-    
+
     // Auxiliary Data
     const [suppliers, setSuppliers] = useState([]);
     const [taxes, setTaxes] = useState([]);
@@ -69,10 +70,13 @@ export default function InventoryManager({ type }) {
     const [isMaterialFormOpen, setIsMaterialFormOpen] = useState(false);
     const [isSpecialItemFormOpen, setIsSpecialItemFormOpen] = useState(false);
     const [isRestockModalOpen, setIsRestockModalOpen] = useState(false);
+    const [isSplitStockModalOpen, setIsSplitStockModalOpen] = useState(false);
     const [restockItem, setRestockItem] = useState(null);
+    const [splitItem, setSplitItem] = useState(null);
     const [editingItem, setEditingItem] = useState(null);
     const [isFirstLoad, setIsFirstLoad] = useState(true);
     const [restockingItemIds, setRestockingItemIds] = useState([]);
+    const [viewingSupplier, setViewingSupplier] = useState(null);
 
     // Filter states
     const [isFilterVisible, setIsFilterVisible] = useState(false);
@@ -110,7 +114,7 @@ export default function InventoryManager({ type }) {
                         const itemStr = localStorage.getItem(key);
                         if (!itemStr) continue;
                         const { createdMaterial, createdProduct, restockData } = JSON.parse(itemStr);
-                        
+
                         let itemId;
                         if (key.startsWith("pending_restock_material_")) {
                             itemId = key.replace("pending_restock_material_", "");
@@ -141,7 +145,7 @@ export default function InventoryManager({ type }) {
                                 console.error("Silent retry error:", err);
                                 try {
                                     localStorage.removeItem(key);
-                                } catch (e) {}
+                                } catch (e) { }
                                 setRestockingItemIds(prev => prev.filter(id => id !== String(itemId)));
                                 fetchData(true);
                             }
@@ -164,7 +168,7 @@ export default function InventoryManager({ type }) {
                 setIsProductFormOpen(true);
             } else if (type === "Raw Materials") {
                 setIsMaterialFormOpen(true);
-            } else if (type === "Customized Products") {
+            } else if (type === "Stocks") {
                 setIsSpecialItemFormOpen(true);
             } else if (type === "Items") {
                 setIsItemModalOpen(true);
@@ -225,7 +229,7 @@ export default function InventoryManager({ type }) {
                 const response = await inventoryService.getProducts(commonParams);
                 setProducts(response.data);
                 setTotalProducts(response.totalCount);
-            } else if (activeTab === "Customized Products") {
+            } else if (activeTab === "Stocks") {
                 const response = await inventoryService.getCustomizedProducts(commonParams);
                 setSpecialItems(response.data);
                 setTotalSpecialItems(response.totalCount);
@@ -351,7 +355,7 @@ export default function InventoryManager({ type }) {
                 tax_id: data.tax ? parseInt(data.tax) : null,
                 tax_percent: taxPercent
             };
-            
+
             if (editingItem) {
                 const materialId = Number(editingItem.id?.id || editingItem.id);
                 await inventoryService.updateRawMaterial(materialId, apiPayload);
@@ -468,20 +472,25 @@ export default function InventoryManager({ type }) {
                 unit: data.unit || null,
                 description: data.description || null,
                 rate: parseFloat(data.rate) || 0,
-
                 tax: parseInt(data.tax) || null,
                 Production_cost: parseFloat(data.production_cost) || 0,
                 opening_quantity: parseFloat(data.opening_quantity) || 0,
                 current_quantity: parseFloat(data.current_quantity) || 0,
+                supplier_id: data.enableRestock && data.isCardamom ? (data.restock_supplier_id?.id || data.restock_supplier_id) : null,
+                gross_weight: data.enableRestock && data.isCardamom ? parseFloat(data.grossWeight) || 0 : 0,
+                tare_weight: data.enableRestock && data.isCardamom ? parseFloat(data.tareWeight) || 0 : 0,
+                sample_deduction: data.enableRestock && data.isCardamom ? parseFloat(data.sampleDeduction) || 0 : 0,
+                net_weight: data.enableRestock && data.isCardamom ? parseFloat(data.restock_quantity) || 0 : 0,
+                cardamom_size: data.enableRestock && data.isCardamom ? data.cardamomType : null,
             };
 
             if (editingItem) {
                 const specialItemId = Number(editingItem.id?.id || editingItem.id);
                 await inventoryService.updateCustomizedProduct(specialItemId, payload);
-                dispatch(showToast({ message: "Customized product updated successfully", type: "success" }));
+                dispatch(showToast({ message: "stocks updated successfully", type: "success" }));
             } else {
                 const response = await inventoryService.saveCustomizedProduct(payload);
-                dispatch(showToast({ message: "Customized product created successfully", type: "success" }));
+                dispatch(showToast({ message: "stocks created successfully", type: "success" }));
                 const createdId = findIdInObject(response);
                 if (data.enableRestock && createdId) {
                     const createdProduct = {
@@ -493,11 +502,15 @@ export default function InventoryManager({ type }) {
                         supplier_id: data.restock_supplier_id ? (data.restock_supplier_id.id || data.restock_supplier_id) : null,
                         payment_method: data.restock_payment_method || null,
                         payment_status: data.restock_payment_status || "FULLY_PAID",
-                        paid_amount: parseFloat(data.restock_payment_amount) || 0
+                        paid_amount: parseFloat(data.restock_payment_amount) || 0,
+                        isCardamom: data.isCardamom,
+                        withTax: data.withTax,
+                        grossWeight: parseFloat(data.grossWeight) || 0,
+                        tareWeight: parseFloat(data.tareWeight) || 0,
                     };
 
                     try {
-                        await processRestock(createdProduct, restockData, "Customized Products");
+                        await processRestock(createdProduct, restockData, "Stocks");
                         dispatch(showToast({ message: "Stock restocked and purchase invoice & payment recorded successfully", type: "success" }));
                     } catch (restockErr) {
                         console.error("Restock error after creation:", restockErr);
@@ -509,9 +522,9 @@ export default function InventoryManager({ type }) {
             setEditingItem(null);
             fetchData(true);
         } catch (error) {
-            console.error("Error saving customized product:", error);
+            console.error("Error saving stocks:", error);
             const operation = editingItem ? "update" : "create";
-            const errorMsg = handleCrudError(error, operation, "customized product");
+            const errorMsg = handleCrudError(error, operation, "stocks");
             dispatch(showToast({ message: errorMsg, type: "error" }));
         } finally {
             setIsSaving(false);
@@ -519,7 +532,7 @@ export default function InventoryManager({ type }) {
     };
 
     const handleRestockConfirm = async (data) => {
-        const restockType = restockItem?.unit_price !== undefined ? "Raw Materials" : (restockItem?.item_type === "CUSTOMISED PRODUCTS" || activeTab === "Customized Products" ? "Customized Products" : activeTab);
+        const restockType = restockItem?.unit_price !== undefined ? "Raw Materials" : (restockItem?.item_type === "CUSTOMISED PRODUCTS" || activeTab === "Stocks" ? "Stocks" : activeTab);
         setIsSaving(true);
         try {
             await processRestock(restockItem, data, restockType);
@@ -550,7 +563,7 @@ export default function InventoryManager({ type }) {
         let title = "Item";
         if (activeTab === "Raw Materials") title = "Material";
         else if (activeTab === "Products") title = "Product";
-        else if (activeTab === "Customized Products") title = "Special Item";
+        else if (activeTab === "Stocks") title = "Special Item";
 
         dispatch(openDeleteModal({
             title: `Delete ${title}`,
@@ -573,7 +586,7 @@ export default function InventoryManager({ type }) {
                 dispatch(showToast({ message: "Product deleted successfully", type: "success" }));
             } else {
                 await inventoryService.deleteCustomizedProduct(item.id);
-                dispatch(showToast({ message: "Customized product deleted successfully", type: "success" }));
+                dispatch(showToast({ message: "stocks deleted successfully", type: "success" }));
             }
             await fetchData(true);
             dispatch(closeDeleteModal());
@@ -618,13 +631,13 @@ export default function InventoryManager({ type }) {
 
     const navbarData = {
         heading: activeTab === "Items" ? "Inventory Items" : activeTab,
-        subheading: activeTab === "Items" 
-            ? "Manage all sales and purchase items" 
+        subheading: activeTab === "Items"
+            ? "Manage all sales and purchase items"
             : activeTab === "Raw Materials"
-            ? "Track and manage raw materials for production"
-            : activeTab === "Products"
-            ? "Manage finished products and stock levels"
-            : "Manage special or customized product stock",
+                ? "Track and manage raw materials for production"
+                : activeTab === "Products"
+                    ? "Manage finished products and stock levels"
+                    : "Manage special or stocks stock",
         from: "inventory",
     };
 
@@ -668,8 +681,8 @@ export default function InventoryManager({ type }) {
                                             <button
                                                 onClick={() => handleExport({
                                                     endpoint: activeTab === "Items" ? "custom-api/admin/items_export" : activeTab === "Raw Materials" ? "custom-api/admin/inventory/raw_materials_export" : activeTab === "Products" ? "custom-api/admin/inventory/products_export" : "custom-api/admin/items_export",
-                                                    method: activeTab === "Customized Products" ? "POST" : "GET",
-                                                    payload: activeTab === "Items" ? { category: "both" } : activeTab === "Customized Products" ? { category: "sales" } : undefined,
+                                                    method: activeTab === "Stocks" ? "POST" : "GET",
+                                                    payload: activeTab === "Items" ? { category: "both" } : activeTab === "Stocks" ? { category: "sales" } : undefined,
                                                     dispatch,
                                                     setIsExporting,
                                                     defaultFileName: `${activeTab.toLowerCase().replace(" ", "_")}_export.xlsx`
@@ -690,7 +703,7 @@ export default function InventoryManager({ type }) {
                                                 }}
                                                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-[#FFCA00] text-white rounded-lg text-[14px] font-medium cursor-pointer hover:bg-[#d9ac00] whitespace-nowrap"
                                             >
-                                                <span>Add New {activeTab === "Raw Materials" ? "Material" : activeTab === "Products" ? "Product" : activeTab === "Items" ? "Item" : "Customized Product"}</span>
+                                                <span>Add New {activeTab === "Raw Materials" ? "Material" : activeTab === "Products" ? "Product" : activeTab === "Items" ? "Item" : "stocks"}</span>
                                                 <FiPlus size={18} />
                                             </button>
                                         </div>
@@ -827,13 +840,14 @@ export default function InventoryManager({ type }) {
                                                             <th className="px-6 py-4 text-[14px] lg:text-[15px] font-semibold text-gray-700 whitespace-nowrap min-w-[200px]">Composition</th>
                                                         </>
                                                     )}
-                                                    {activeTab === "Customized Products" && (
+                                                    {activeTab === "Stocks" && (
                                                         <>
                                                             <th className="px-6 py-4 text-[14px] lg:text-[15px] font-semibold text-gray-700 whitespace-nowrap rounded-tl-lg">Item Name</th>
+                                                            <th className="px-6 py-4 text-[14px] lg:text-[15px] font-semibold text-gray-700 whitespace-nowrap">Supplier</th>
+                                                            <th className="px-6 py-4 text-[14px] lg:text-[15px] font-semibold text-gray-700 whitespace-nowrap">Weight Details</th>
                                                             <th className="px-6 py-4 text-[14px] lg:text-[15px] font-semibold text-gray-700 whitespace-nowrap text-center">In Stock</th>
-                                                            <th className="px-6 py-4 text-[14px] lg:text-[15px] font-semibold text-gray-700 whitespace-nowrap">Unit Type</th>
-                                                            <th className="px-6 py-4 text-[14px] lg:text-[15px] font-semibold text-gray-700 whitespace-nowrap text-right">Tax</th>
                                                             <th className="px-6 py-4 text-[14px] lg:text-[15px] font-semibold text-gray-700 whitespace-nowrap text-right">Rate</th>
+                                                            <th className="px-6 py-4 text-[14px] lg:text-[15px] font-semibold text-gray-700 whitespace-nowrap text-right">Total Amount</th>
                                                         </>
                                                     )}
                                                     <th className="px-6 py-4 text-[14px] lg:text-[15px] font-semibold text-gray-700 text-center rounded-tr-lg whitespace-nowrap">Actions</th>
@@ -841,17 +855,16 @@ export default function InventoryManager({ type }) {
                                             </thead>
                                             <tbody className="divide-y divide-gray-100">
                                                 {filteredData.map((item, idx) => (
-                                                    <tr 
-                                                        key={item.id} 
+                                                    <tr
+                                                        key={item.id}
                                                         className="transition-colors border-b border-gray-100"
                                                     >
                                                         {activeTab === "Items" && (
                                                             <>
                                                                 <td className="px-6 py-4 text-[14px] lg:text-[15px] text-gray-700">{item.name}</td>
                                                                 <td className="px-6 py-4 text-[14px] lg:text-[15px] text-gray-700">
-                                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
-                                                                        item.category === "SALES" ? "bg-blue-50 text-blue-500 border-blue-100" : item.category === "PURCHASE" ? "bg-purple-50 text-purple-500 border-purple-100" : "bg-green-50 text-green-500 border-green-100"
-                                                                    }`}>
+                                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold border ${item.category === "SALES" ? "bg-blue-50 text-blue-500 border-blue-100" : item.category === "PURCHASE" ? "bg-purple-50 text-purple-500 border-purple-100" : "bg-green-50 text-green-500 border-green-100"
+                                                                        }`}>
                                                                         {item.category?.charAt(0).toUpperCase() + item.category?.slice(1).toLowerCase() || "—"}
                                                                     </span>
                                                                 </td>
@@ -888,7 +901,7 @@ export default function InventoryManager({ type }) {
                                                                 </td>
                                                                 <td className="px-6 py-4 text-[14px] lg:text-[15px] text-gray-700 text-right whitespace-nowrap">₹ {parseFloat(item.Production_cost || item.cost_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                                 <td className="px-6 py-4 text-[14px] lg:text-[15px] text-gray-700 text-right whitespace-nowrap">₹ {parseFloat(item.rate || item.selling_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                                                 <td className="px-6 py-4 text-[14px] lg:text-[13px] text-gray-500 min-w-[200px] max-w-[300px] whitespace-normal break-words leading-relaxed">
+                                                                <td className="px-6 py-4 text-[14px] lg:text-[13px] text-gray-500 min-w-[200px] max-w-[300px] whitespace-normal break-words leading-relaxed">
                                                                     {item.composition?.map((comp, i) => {
                                                                         const material = Array.isArray(comp.raw_material_id) ? comp.raw_material_id[0] : comp.raw_material_id;
                                                                         const name = material?.name || getRawMaterialName(material?.id || material);
@@ -903,20 +916,74 @@ export default function InventoryManager({ type }) {
                                                                 </td>
                                                             </>
                                                         )}
-                                                        {activeTab === "Customized Products" && (
-                                                            <>
-                                                                <td className="px-6 py-4 text-[14px] lg:text-[15px] text-gray-700">{item.name}</td>
-                                                                <td className="px-6 py-4 text-[14px] lg:text-[15px] text-gray-700 text-center">
-                                                                    {restockingItemIds.includes(String(item.id)) ? (
-                                                                        <span className="text-[12px] font-semibold text-yellow-600 animate-pulse">Stock adding...</span>
-                                                                    ) : (
-                                                                        item.current_quantity || item.opening_quantity || 0
-                                                                    )}
-                                                                </td>
-                                                                <td className="px-6 py-4 text-[14px] lg:text-[15px] text-gray-700">{item.unit || "Unit"}</td>
-                                                                <td className="px-6 py-4 text-[14px] lg:text-[15px] text-gray-700 text-right">{getTaxName(item.tax)}</td>
-                                                                <td className="px-6 py-4 text-[14px] lg:text-[15px] text-gray-700 text-right whitespace-nowrap">₹ {parseFloat(item.rate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                                            </>
+                                                        {activeTab === "Stocks" && (
+                                                            (() => {
+                                                                const inStock = item.current_quantity || item.opening_quantity || 0;
+                                                                const rate = parseFloat(item.rate || item.Production_cost || 0);
+                                                                const taxPercent = parseFloat(item.tax_rate || item.tax_data?.rate || 0);
+                                                                
+                                                                let totalAmount = inStock * rate;
+                                                                
+                                                                // If tax is included or applied, we can show it. By default it is excluded if not specified.
+                                                                let hasTax = taxPercent > 0;
+                                                                let supplierId = item.supplier_id;
+                                                                let supplierObj = supplierId ? suppliers.find(s => String(s.id) === String(supplierId)) : null;
+                                                                let supplierName = supplierObj ? supplierObj.name : (supplierId ? "Unknown Supplier" : null);
+
+                                                                const isCardamom = (item.gross_weight > 0 || item.packet_weight > 0 || item.sample_weight > 0);
+                                                                
+                                                                return (
+                                                                    <>
+                                                                        <td className="px-6 py-4 text-[14px] lg:text-[15px] text-gray-700 font-medium">{item.name}</td>
+                                                                        <td className="px-6 py-4 text-[14px] lg:text-[15px] text-gray-700 whitespace-nowrap">
+                                                                            {supplierId ? (
+                                                                                <span 
+                                                                                    className="text-blue-600 hover:text-blue-800 cursor-pointer font-medium hover:underline"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        if (supplierObj) {
+                                                                                            setViewingSupplier(supplierObj);
+                                                                                        } else {
+                                                                                            setViewingSupplier({ name: supplierName, email: "Loading...", phone: "Loading..." });
+                                                                                            partyService.getPartyById(supplierId)
+                                                                                                .then(res => setViewingSupplier(res || { name: supplierName, email: "N/A", phone: "N/A" }))
+                                                                                                .catch(() => setViewingSupplier({ name: supplierName, email: "N/A", phone: "N/A" }));
+                                                                                        }
+                                                                                    }}
+                                                                                >
+                                                                                    {supplierName}
+                                                                                </span>
+                                                                            ) : "—"}
+                                                                        </td>
+                                                                        <td className="px-6 py-4 text-[13px] text-gray-600 whitespace-nowrap">
+                                                                            {isCardamom ? (
+                                                                                <div className="flex flex-col gap-0.5">
+                                                                                    <span className="font-medium text-gray-800">Net: {inStock} kg</span>
+                                                                                    <span className="text-[11px] text-gray-500">
+                                                                                        Gross: {item.gross_weight || 0} | Tare: {item.packet_weight || 0} | Sam: {item.sample_weight || 0}
+                                                                                    </span>
+                                                                                </div>
+                                                                            ) : "—"}
+                                                                        </td>
+                                                                        <td className="px-6 py-4 text-[14px] lg:text-[15px] font-bold text-gray-900 text-center">
+                                                                            {restockingItemIds.includes(String(item.id)) ? (
+                                                                                <span className="text-[12px] font-semibold text-yellow-600 animate-pulse">Adding...</span>
+                                                                            ) : (
+                                                                                `${inStock} kg`
+                                                                            )}
+                                                                        </td>
+                                                                        <td className="px-6 py-4 text-[14px] lg:text-[15px] text-gray-700 text-right whitespace-nowrap">
+                                                                            ₹ {rate.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / kg
+                                                                        </td>
+                                                                        <td className="px-6 py-4 text-[14px] lg:text-[15px] font-bold text-[#FFCA00] text-right whitespace-nowrap">
+                                                                            ₹ {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                            <span className="block text-[11px] font-normal text-gray-400 mt-0.5">
+                                                                                {hasTax ? `Tax (${taxPercent}%)` : "No Tax"}
+                                                                            </span>
+                                                                        </td>
+                                                                    </>
+                                                                );
+                                                            })()
                                                         )}
                                                         <td className="px-6 py-4 text-center relative whitespace-nowrap">
                                                             <button
@@ -991,12 +1058,12 @@ export default function InventoryManager({ type }) {
                                                 cost_per_unit: material?.unit_price || 0
                                             };
                                         });
-                                        setEditingItem({ 
-                                            ...item, 
+                                        setEditingItem({
+                                            ...item,
                                             selling_price: item.rate,
                                             cost_price: item.Production_cost,
                                             quantity: item.current_quantity,
-                                            composition: mappedComp 
+                                            composition: mappedComp
                                         });
                                         setIsProductFormOpen(true);
                                     } else setIsSpecialItemFormOpen(true);
@@ -1012,6 +1079,19 @@ export default function InventoryManager({ type }) {
                                     const item = filteredData.find(i => i.id === openMenuId);
                                     handleDelete(item);
                                 }}
+                                actions={
+                                    activeTab === "Stocks" && filteredData.find(i => i.id === openMenuId)?.name.toLowerCase().includes("bulk")
+                                        ? [{
+                                            label: "Split Stock",
+                                            onClick: () => {
+                                                const item = filteredData.find(i => i.id === openMenuId);
+                                                setSplitItem(item);
+                                                setIsSplitStockModalOpen(true);
+                                                setOpenMenuId(null);
+                                            }
+                                        }]
+                                        : []
+                                }
                             />
                         </div>
                     )}
@@ -1069,8 +1149,50 @@ export default function InventoryManager({ type }) {
                         item={restockItem}
                         isSaving={isSaving}
                         suppliers={suppliers}
-                        type={restockItem?.unit_price !== undefined ? "Raw Materials" : (restockItem?.item_type === "CUSTOMISED PRODUCTS" || activeTab === "Customized Products" ? "Customized Products" : activeTab)}
+                        type={restockItem?.unit_price !== undefined ? "Raw Materials" : (restockItem?.item_type === "CUSTOMISED PRODUCTS" || activeTab === "Stocks" ? "Stocks" : activeTab)}
                     />
+
+                    <SplitStockModal
+                        isOpen={isSplitStockModalOpen}
+                        onClose={() => {
+                            setIsSplitStockModalOpen(false);
+                            setSplitItem(null);
+                        }}
+                        sourceItem={splitItem}
+                        onSplitSuccess={() => fetchData(true)}
+                    />
+
+                    {/* Supplier View Modal */}
+                    {viewingSupplier && (
+                        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={(e) => { e.stopPropagation(); setViewingSupplier(null); }}>
+                            <div onClick={(e) => e.stopPropagation()} className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 relative animate-in fade-in zoom-in duration-200">
+                                <h2 className="text-xl font-bold text-gray-900 mb-4 border-b pb-3">Supplier Details</h2>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider">Name</label>
+                                        <p className="text-[15px] text-gray-900 font-medium mt-0.5">{viewingSupplier.name || "N/A"}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider">Email</label>
+                                        <p className="text-[15px] text-gray-900 font-medium mt-0.5">{viewingSupplier.email || "N/A"}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider">Phone</label>
+                                        <p className="text-[15px] text-gray-900 font-medium mt-0.5">{viewingSupplier.phone || "N/A"}</p>
+                                    </div>
+                                    {viewingSupplier.gst_number && (
+                                        <div>
+                                            <label className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider">GST Number</label>
+                                            <p className="text-[15px] text-gray-900 font-medium mt-0.5">{viewingSupplier.gst_number}</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex justify-end mt-8 pt-4 border-t">
+                                    <button onClick={() => setViewingSupplier(null)} className="px-6 py-2 bg-[#FFCA00] text-white rounded-lg font-bold text-[14px] hover:bg-[#d9ac00] shadow-sm transition-colors">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </>
             )}
         </div>

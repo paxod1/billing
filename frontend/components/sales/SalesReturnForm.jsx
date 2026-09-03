@@ -521,7 +521,7 @@ const SalesReturnForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = 
                         <div className="py-4 px-2 max-w-4xl mx-auto font-poppins text-left">
                             <h2 className="text-xl md:text-2xl font-bold text-gray-900">Add New Sales Return</h2>
                             <p className="text-gray-500 mt-1 text-sm">Setup sales return details</p>
-                            
+
                             <hr className="border-t border-gray-200 mt-4 mb-6" />
 
                             <div className="mb-6">
@@ -689,11 +689,10 @@ const SalesReturnForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = 
                                                                                 type="number"
                                                                                 value={item.quantity ?? ""}
                                                                                 onChange={(e) => handleItemChange(idx, "quantity", e.target.value)}
-                                                                                className={`w-full max-w-12 px-1 py-1.5 border rounded text-xs text-center h-[32px] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                                                                    item.source_type !== "service" && (parseFloat(item.quantity) > (parseFloat(item.max_quantity) || 0) || parseFloat(item.quantity) <= 0)
+                                                                                className={`w-full max-w-12 px-1 py-1.5 border rounded text-xs text-center h-[32px] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${item.source_type !== "service" && (parseFloat(item.quantity) > (parseFloat(item.max_quantity) || 0) || parseFloat(item.quantity) <= 0)
                                                                                         ? "border-red-500 bg-red-50 text-red-900 focus:ring-red-500 focus:border-red-500"
                                                                                         : "border-gray-300 focus:ring-yellow-400"
-                                                                                }`}
+                                                                                    }`}
                                                                                 placeholder="0"
                                                                             />
                                                                             <button
@@ -917,7 +916,7 @@ const SalesReturnForm = ({ isOpen, onClose, onSave, editData = null, viewOnly = 
                                                         typeLabel = "Product";
                                                         if (!resolvedName && item.item_id) resolvedName = rawMaterialsList.find(r => r.id == item.item_id)?.name;
                                                     } else if (item.source_type === "customized_product") {
-                                                        typeLabel = "Customized Product";
+                                                        typeLabel = "stocks";
                                                         if (!resolvedName && item.item_id) resolvedName = customizedProductsList.find(c => c.id == item.item_id)?.name;
                                                     } else if (item.source_type === "service") {
                                                         typeLabel = "Service";

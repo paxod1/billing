@@ -21,29 +21,55 @@ export const processRestock = async (restockItem, data, restockType) => {
 
     const itemId = Number(restockItem?.id?.id || restockItem?.id || restockItem?.item_id || restockItem?.source_id);
 
+    let taxAmount = 0;
+    let finalTaxPercent = 0;
+    let finalTaxId = null;
+
+    if (data.isCardamom) {
+        if (data.tax) {
+            finalTaxId = restockItem.tax_id?.id || restockItem.tax_id || restockItem.tax || null;
+            finalTaxPercent = parseFloat(restockItem.tax_rate || restockItem.tax_data?.rate || restockItem.tax_percent || 0); 
+        }
+    } else {
+        finalTaxId = restockItem.tax_id?.id || restockItem.tax_id || restockItem.tax || null;
+        finalTaxPercent = parseFloat(restockItem.tax_rate || restockItem.tax_data?.rate || restockItem.tax_percent || 0);
+    }
+    
+    if (finalTaxPercent > 0) {
+        taxAmount = totalPrice * (finalTaxPercent / 100);
+    }
+    
+    const invoiceGrandTotal = totalPrice + taxAmount;
+
     if (supplierId) {
-        const isCustomizedOrProduct = restockType === "Customized Products" || restockType === "Products" || restockItem?.item_type !== undefined || restockItem?.Production_cost !== undefined || restockItem?.cost_price !== undefined;
+        const isCustomizedOrProduct = restockType === "Stocks" || restockType === "Products" || restockItem?.item_type !== undefined || restockItem?.Production_cost !== undefined || restockItem?.cost_price !== undefined;
         const isRawMaterial = restockType === "Raw Materials" || (!isCustomizedOrProduct && restockItem?.unit_price !== undefined);
         const sourceType = isRawMaterial ? "raw_material" : "customized_product";
+
+        let description = restockItem.name || restockItem.description || "Restock Item";
+        if (data.isCardamom) {
+            description = `${description} (Gross: ${data.grossWeight}kg, Tare: ${data.tareWeight}kg, Net: ${addedAmount}kg)`;
+        }
 
         const invoicePayload = {
             supplier_id: supplierId,
             invoice_date: new Date().toISOString().split('T')[0],
             status: "SENT", // Save & Send method
-            total_amount: totalPrice,
+            total_amount: invoiceGrandTotal,
+            isTaxApplicable: data.isCardamom ? !!data.tax : true, // If backend supports it
             items: [
                 {
                     source_type: sourceType,
                     source_id: itemId,
-                    description: restockItem.name || restockItem.description || "Restock Item",
+                    description: description,
                     quantity: addedAmount,
                     rate: unitPrice,
-                    tax_id: restockItem.tax_id?.id || restockItem.tax_id || restockItem.tax || null,
-                    tax_percent: parseFloat(restockItem.tax_percent || 0),
+                    tax_id: finalTaxId,
+                    tax_percent: finalTaxPercent,
                     amount: totalPrice
                 }
             ],
-            notes: `Restock purchase invoice for ${restockItem.name || 'Item'}`
+            notes: data.isCardamom ? `Cardamom Purchase: Gross ${data.grossWeight}kg, Packet ${data.tareWeight}kg` : `Restock purchase invoice for ${restockItem.name || 'Item'}`
         };
 
         // Step 1: Save & Send Purchase Invoice
@@ -52,7 +78,7 @@ export const processRestock = async (restockItem, data, restockType) => {
         const invoiceId = createdInvoice?.id;
 
         // Step 2: Record Purchase Payment against the created invoice
-        if (invoiceId && data.payment_method) {
+        if (invoiceId && data.payment_method && data.payment_status !== "UNPAID") {
             const paymentModeMap = {
                 BANK_TRANSFER: "Bank Transfer",
                 UPI: "UPI",
@@ -61,8 +87,9 @@ export const processRestock = async (restockItem, data, restockType) => {
                 CASH: "Cash"
             };
             const paymentMode = paymentModeMap[data.payment_method] || data.payment_method || "Bank Transfer";
-            const paidAmountNum = parseFloat(data.paid_amount) || totalPrice;
-            const paymentStatus = (data.payment_status === "FULLY_PAID" || paidAmountNum >= totalPrice) ? "PAID" : "PARTIALLY_PAID";
+            // If the user specified a paid_amount, use it. Otherwise, assume they paid the full grand total.
+            const paidAmountNum = parseFloat(data.paid_amount) || invoiceGrandTotal;
+            const paymentStatus = (data.payment_status === "FULLY_PAID" || paidAmountNum >= invoiceGrandTotal) ? "PAID" : "PARTIALLY_PAID";
 
             const paymentPayload = {
                 supplier_id: supplierId,

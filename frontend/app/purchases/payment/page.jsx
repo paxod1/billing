@@ -55,6 +55,7 @@ function PurchasePaymentsContent() {
     const [openMenuId, setOpenMenuId] = useState(null);
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
     const [loadingEditId, setLoadingEditId] = useState(null);
+    const [initialInvoiceId, setInitialInvoiceId] = useState(null);
     
     const actionButtonsRef = useRef({});
 
@@ -113,7 +114,11 @@ function PurchasePaymentsContent() {
     // Handle initial redirect actions
     useEffect(() => {
         const action = searchParams.get("action");
+        const invoiceId = searchParams.get("invoice_id");
         if (action === "resume" || action === "create") {
+            if (invoiceId) {
+                setInitialInvoiceId(invoiceId);
+            }
             setIsFormOpen(true);
         }
     }, [searchParams]);
@@ -540,10 +545,12 @@ function PurchasePaymentsContent() {
                 isOpen={isFormOpen}
                 editData={editData}
                 viewOnly={viewOnly}
+                initialInvoiceId={initialInvoiceId}
                 onClose={() => {
                     setIsFormOpen(false);
                     setEditData(null);
                     setViewOnly(false);
+                    setInitialInvoiceId(null);
                 }}
                 onSave={handleSavePayment}
             />

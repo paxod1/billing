@@ -64,7 +64,7 @@ export const navigationSections = [
                 enabled: true,
                 hasDropdown: true,
                 dropdownItems: [
-                    { name: "Customized Products", path: "/inventory/customized-products" },
+                    { name: "Stocks", path: "/inventory/customized-products" },
                 ],
             },
             {
